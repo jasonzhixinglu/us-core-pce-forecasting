@@ -57,9 +57,9 @@ Only levels at several horizons enter the block. Momentum and acceleration (3m m
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-PC1 is aligned positively with 6m rate (3), short-horizon rate (1m/3m) (3), 12m rate (2); e.g. cpi_trim_6m, pce_trim_6m, pce_core_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.
+PC1 is aligned positively with 6m rate (3), short-horizon rate (1m/3m) (3), 12m rate (2); e.g. cpi_trim_6m, pce_trim_6m, pce_core_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon; a level factor.
 
-PC2 is aligned positively with short-horizon rate (1m/3m) (6), 6m rate (2); e.g. cpi_flex_3m, cpi_flex_6m, cpi_flex_1m; inverted: none. Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).
+PC2 is aligned positively with short-horizon rate (1m/3m) (6), 6m rate (2); e.g. cpi_flex_3m, cpi_flex_6m, cpi_flex_1m; inverted: none. Reading: short-horizon flexible-price inflation (1m to 6m), the volatile food, energy and goods component that moves independently of the common level; the PCA forms the momentum contrast itself.
 
 52 variables from 1985-01. The first three components explain 63, 14, and 4 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 58th percentile of its history. The largest deviations from what the common factor implies are pce_6m (+1.1 sd), pce_12m (+1.0 sd), cpi_flex_3m (-1.0 sd).
 
@@ -123,9 +123,9 @@ Levels of expected inflation from households, professionals, a model and markets
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-PC1 is aligned positively with markets (3), model-based (2), professionals (2), households (1); e.g. clev_1y, spf_cpi_4q, clev_10y; inverted: none. Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.
+PC1 is aligned positively with markets (3), model-based (2), professionals (2), households (1); e.g. clev_1y, spf_cpi_4q, clev_10y; inverted: none. Reading: the level of expected inflation across markets, the Cleveland model, professionals and households; an expectations-level factor.
 
-PC2 is aligned positively with dispersion (2), markets (2), households (1); e.g. spf_cpi_4q_sd, spf_cpi_4q_iqr, mich_1y; inverted: model-based (2), professionals (1); e.g. clev_10y, spf_cpi_10y, clev_1y. Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.
+PC2 is aligned positively with dispersion (2), markets (2), households (1); e.g. spf_cpi_4q_sd, spf_cpi_4q_iqr, mich_1y; inverted: model-based (2), professionals (1); e.g. clev_10y, spf_cpi_10y, clev_1y. Reading: forecaster dispersion and household expectations against the long-run anchors (SPF 10-year, Cleveland 10-year); a near-term uncertainty versus anchoring factor.
 
 10 variables from 1985-01. The first three components explain 38, 25, and 15 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 52nd percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_10y (+0.5 sd), bei_5y5y (+0.1 sd).
 
@@ -157,9 +157,9 @@ Rates in levels, quantities as annualized 3/6-month or 12-month log growth, quar
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-PC1 is aligned positively with activity (6), wages (1), labor market (1); e.g. gdp_yoy, comp_12m, payrolls_12m; inverted: none. Reading: output and employment growth, the business-cycle factor.
+PC1 is aligned positively with activity (6), wages (1), labor market (1); e.g. gdp_yoy, comp_12m, payrolls_12m; inverted: none. Reading: output and employment growth; the business-cycle factor.
 
-PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: activity (2), labor market (1); e.g. unrate, real_retail_6m, ip_6m. Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.
+PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: activity (2), labor market (1); e.g. unrate, real_retail_6m, ip_6m. Reading: wage growth and labor-market tightness (V/U, quits) against unemployment and activity momentum; a wage-pressure factor distinct from output growth.
 
 19 variables from 1985-01. The first three components explain 43, 21, and 8 percent of the variance, which points to one dominant dimension. The first component stands at -0.2 standard deviations today, the 28th percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
 
@@ -191,9 +191,9 @@ Monthly averages of daily data; policy and Treasury rates, term spread, real rat
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-PC1 is aligned positively with none; inverted: rates (6), risk pricing (1), credit supply (1); e.g. mortgage30, real_10y_clev, dgs10. Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.
+PC1 is aligned positively with none; inverted: rates (6), risk pricing (1), credit supply (1); e.g. mortgage30, real_10y_clev, dgs10. Reading: the level of nominal, real and mortgage rates, inverted, so that higher = lower rates = looser; the rates dimension of financial conditions.
 
-PC2 is aligned positively with risk pricing (4), conditions indexes (2), credit supply (1); e.g. gz_spread, baa_spread, ebp; inverted: asset prices (1); e.g. equity_12m_ret. Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.
+PC2 is aligned positively with risk pricing (4), conditions indexes (2), credit supply (1); e.g. gz_spread, baa_spread, ebp; inverted: asset prices (1); e.g. equity_12m_ret. Reading: credit spreads, the excess bond premium, the NFCI and lending standards against equity returns; the risk-pricing or stress dimension (higher = more stress).
 
 20 variables from 1985-01. The first three components explain 31, 27, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.1 standard deviations today, the 57th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.5 sd), baa_spread (-1.0 sd), vix (-0.5 sd).
 
@@ -204,9 +204,9 @@ The factor model is X = Lambda_G G + lambda_B B + e: two global factors common t
 
 The panel has 140 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 52% of its variance (G1 39%, G2 13%); one PC per block on the residual explains infl 20%, dist 28%, exp 50%, dem 31%, fin 34% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.97, G2 0.93, B_infl 0.85, B_dist 0.84, B_exp 0.86, B_dem 0.82, B_fin 0.96.
 
-G1 is drawn from infl (10) among its top-10 correlates; aligned positively with infl 6m rate (4), infl 12m rate (4), infl short-horizon rate (1m/3m) (2); e.g. cpi_trim_6m, pce_trim_6m, cpi_trim_3m; inverted: none. Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.
+G1 is drawn from infl (10) among its top-10 correlates; aligned positively with infl 6m rate (4), infl 12m rate (4), infl short-horizon rate (1m/3m) (2); e.g. cpi_trim_6m, pce_trim_6m, cpi_trim_3m; inverted: none. Reading: the common inflation level, dominated by trimmed, core and headline rates at 3 to 12 months; the state the underlying-inflation measures try to track.
 
-G2 is drawn from dem (5), fin (3), infl (2) among its top-10 correlates; aligned positively with dem activity (5), infl short-horizon rate (1m/3m) (1), infl 6m rate (1), fin asset prices (1); e.g. ip_12m, ip_6m, real_inv_yoy; inverted: fin credit supply (1), fin risk pricing (1); e.g. sloos_ci, ebp. Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state.
+G2 is drawn from dem (5), fin (3), infl (2) among its top-10 correlates; aligned positively with dem activity (5), infl short-horizon rate (1m/3m) (1), infl 6m rate (1), fin asset prices (1); e.g. ip_12m, ip_6m, real_inv_yoy; inverted: fin credit supply (1), fin risk pricing (1); e.g. sloos_ci, ebp. Reading: activity and investment growth with short-horizon inflation, against tight lending standards and wide spreads; a demand-pressure state.
 
 - B_infl loads on: cpi_core_flex_6m (-0.29), cpi_core_flex_3m (-0.28), cpi_core_flex_12m (-0.26)
 - B_dist loads on: xs_sd_12m (+0.29), xs_sd_6m (+0.27), xs_sd_3m (+0.25)

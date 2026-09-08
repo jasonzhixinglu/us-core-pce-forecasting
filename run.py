@@ -24,6 +24,7 @@ warnings.filterwarnings("ignore")
 plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.alpha": 0.3, "font.size": 9})
 
 HERE = Path(__file__).resolve().parent; CACHE = HERE / "cache"; FIG = HERE / "figures"
+sys.path.insert(0, str(HERE)); from text import TEXT, READING   # editable prose lives in text.py
 for d in (CACHE, FIG): d.mkdir(exist_ok=True)
 REFRESH = "--refresh" in sys.argv
 START = "1985-01-01"; OOS_START = "2000-01-01"; H = [3, 6, 12, 24]
@@ -220,7 +221,6 @@ def describe_factor(block, l, k=8):
     return f"aligned positively with {side(pos)}; inverted: {side(neg)}"
 
 BPC = {}; DESC = {}
-sys.path.insert(0, str(HERE)); from text import TEXT, READING   # editable prose lives in text.py
 def block_eda(name, df, ref, flip=False, title=""):
     """Standardize over the panel window, PCA; figure: scree and PC1/PC2 paths; correlations with PC1 and one-factor residuals; correlations with PC2 and two-factor residuals."""
     Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]

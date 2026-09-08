@@ -186,7 +186,7 @@ PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wa
 | sloos_ci | SLOOS net share tightening C&I standards | Fed via FRED | quarterly spread to months |
 | mortgage30 | 30-year mortgage rate | Freddie Mac via FRED | monthly mean |
 
-Monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. The factor is oriented so that positive = looser.
+Monthly averages of daily data. Policy and Treasury rates, real rates (TIPS and the 10-year yield minus Cleveland Fed expectations), the NFCI and adjusted NFCI, VIX, the Baa spread, the GZ spread and excess bond premium, the term premium, equity returns, a spliced broad dollar, oil and commodity prices, lending standards and the mortgage rate. Spreads between panel members (term spread, mortgage spread) are left for the PCA to form. The factor is oriented so that positive = looser.
 
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*

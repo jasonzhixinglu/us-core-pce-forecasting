@@ -189,18 +189,14 @@ R.h(1, "US inflation signals: agreement, disagreement, and forecasting")
 R.p(f"Report generated {pd.Timestamp.today():%B %d, %Y}; data through {max(v.index[-1] for v in RAW.values()):%B %Y}.")
 R.summary_slot()
 R.h(2, "Introduction")
-R.p("The question is what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and whether today's configuration resembles past episodes. "
-    "The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.")
+R.p(TEXT["p07_the_question_is_what_the_curre"])
 R.p(TEXT["p01_all_of_these_are_treated_as_po"])
-R.p("The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. "
-    "The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.")
-R.note("Data are latest-vintage FRED series (CSV endpoint, no key). Two inputs are not on FRED and are flagged where used: the Survey of Professional Forecasters individual CPI forecasts (Philadelphia Fed) and the excess bond premium (Federal Reserve). "
-       "Pseudo-out-of-sample results computed on revised data are not real-time results; the data loader is isolated so that ALFRED vintages can be substituted later.")
+R.p(TEXT["p08_the_approach_has_five_steps_p"])
+R.note(TEXT["p09_data_are_latest_vintage_fred_s"])
 R.h(2, "1. The five blocks")
 R.p(f"{(VER['status'] == 'ok').sum()} of {len(VER)} FRED series were downloaded and verified (first and last observations are in cache/series_verification.csv). "
     f"Series starting after 1995 and therefore imputed in the early sample: {', '.join(VER.index[VER['flag'] == 'short history'])}. The panel runs from {START[:4]}, when the breadth block first has at least 20 categories.")
-R.p("For each block the same diagnostic is shown: the variables are standardized, a principal-components decomposition is computed, and four panels report the scree (evidence of one versus several dimensions), the correlation of each variable with the first component (closer to one means more aligned with the block's common factor), "
-    "the first component over time as a one-line summary of the block, and the residuals from the one-factor fit as a heatmap (whether recent months look different from history).")
+R.p(TEXT["p10_for_each_block_the_same_diagno"])
 # ------------------------------------------------------------------ block EDA
 import re
 GROUPS = {"infl": [("short-horizon rate (1m/3m)", r"_(1|3)m$"), ("6m rate", r"_6m$"), ("12m rate", r"_12m$")],
@@ -273,8 +269,7 @@ for m1, m12, tag, name, src in RATES:
 B1 = pd.DataFrame(B1)
 R.h(3, "Block 1: inflation measures")
 R.table(meta_table(1), "Block 1 indicators", small=True)
-R.p("Only levels at several horizons enter the block. Momentum and acceleration (3m minus 12m, changes in the 12m rate) are deliberately not included as separate indicators: they are linear combinations of what is already in the panel, and the PCA recovers them itself as contrasts, "
-    "with opposite loadings on short- and long-horizon rates. The forecasting regressions in section 3 use momentum terms computed directly from core PCE.")
+R.p(TEXT["p11_only_levels_at_several_horizon"])
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")
 
 # ------------------------------------------------------------------ block 2: distribution
@@ -316,8 +311,7 @@ for short, name, src, tr in [("mich_1y", "Michigan 1-year expected inflation, me
     reg(3, short, name, src, tr)
 R.h(3, "Block 3: inflation expectations")
 R.table(meta_table(3), "Block 3 indicators", small=True)
-R.p("Levels of expected inflation from households, professionals, a model and markets at short and long horizons, plus forecaster dispersion. Spreads between sources and horizons are not included as separate indicators; the PCA forms them as contrasts. "
-    "Michigan 5-10 year expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.")
+R.p(TEXT["p12_levels_of_expected_inflation_f"])
 block_eda("exp", B3, "mich_1y", title="Block 3, expectations")
 
 # ------------------------------------------------------------------ block 4: demand and labor
@@ -334,8 +328,7 @@ for short, name, src, tr in [("unrate", "Unemployment rate", "BLS via FRED", "le
     reg(4, short, name, src, tr)
 R.h(3, "Block 4: demand and labor")
 R.table(meta_table(4), "Block 4 indicators", small=True)
-R.p("Rates in levels, quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. "
-    "Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.")
+R.p(TEXT["p13_rates_in_levels_quantities_as"])
 block_eda("dem", B4, "payrolls_12m", title="Block 4, demand and labor")
 
 # ------------------------------------------------------------------ block 5: financial
@@ -353,9 +346,7 @@ for short, name, src, tr in [("fedfunds", "Effective federal funds rate", "Fed v
     reg(5, short, name, src, tr)
 R.h(3, "Block 5: financial conditions and risk pricing")
 R.table(meta_table(5), "Block 5 indicators", small=True)
-R.p("Monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, "
-    "GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. "
-    "The factor is oriented so that positive = looser.")
+R.p(TEXT["p14_monthly_averages_of_daily_data"])
 block_eda("fin", B5, "nfci", flip=True, title="Block 5, financial conditions (+ = looser)")
 
 # =============================================================================== panel and factors
@@ -378,8 +369,7 @@ for b in BLOCKS:
 F = pd.concat([G, pd.DataFrame(Bf)], axis=1); Fz = zscore(F)
 var = VAR(F.dropna()).fit(1); persist = pd.Series(np.diag(var.coefs[0]), index=F.columns)
 top = lambda ld, k=3: ", ".join(f"{vname(c)} ({v:+.2f})" for c, v in ld.reindex(ld.abs().sort_values().index[-k:][::-1]).items())
-R.p("The factor model is X = Lambda_G G + lambda_B B + e: two global factors common to the whole panel and one factor specific to each block. The implementation is simple: standardize the panel, extract two principal components, subtract the fitted global component, and take the first principal component of each block's residual. "
-    "Signs are normalized so that every factor is oriented as inflationary pressure (the financial factor: looser conditions). A VAR(1) on the seven factors provides the dynamics used in the news decomposition.")
+R.p(TEXT["p15_the_factor_model_is_x_lambda"])
 R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. Two global PCs on the standardized panel explain {100*exG.sum():.0f}% of its variance (G1 {100*exG[0]:.0f}%, G2 {100*exG[1]:.0f}%); "
     f"one PC per block on the residual explains {', '.join(f'{b} {100*v:.0f}%' for b, v in exB.items())} of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). "
     f"VAR(1) own-persistence: {', '.join(f'{k} {v:.2f}' for k, v in persist.items())}.")
@@ -414,8 +404,7 @@ for h in [3, 6, 12]:
         f = oos_forecast(D, f"pi_fut_{h}", cols, h); e = (D[f"pi_fut_{h}"] - f).dropna(); da = (np.sign(f - D["pi12"]) == np.sign(D[f"dpi_{h}"])).loc[e.index].mean()
         results.append(dict(h=h, model=name, RMSFE=np.sqrt((e ** 2).mean()), dir_acc=da))
 RES_OOS = pd.DataFrame(results); RES_OOS["rel_RMSFE"] = RES_OOS["RMSFE"] / RES_OOS.groupby("h")["RMSFE"].transform("first"); RM = RES_OOS.set_index(["h", "model"])
-R.p("Core PCE is the target. The dependent variables are future annualized core PCE inflation over 3, 6, 12 and 24 months, its change relative to today's 12-month rate, and an indicator for deceleration. "
-    "Three nested direct regressions are compared: M1 uses inflation history and momentum only (12m rate, its 12-month lag, 3m and 6m rates, the 3-month change in the 12m rate, acceleration); M2 adds the two global factors; M3 adds the five block factors.")
+R.p(TEXT["p16_core_pce_is_the_target_the_de"])
 R.p("Forecasts are evaluated pseudo-out-of-sample with an expanding window, its change relative to today's 12m rate, and the deceleration indicator. Direct regressions with three nested information sets: M1 inflation history and momentum, M2 plus the global factors, M3 plus the block factors. "
     f"Expanding-window pseudo-out-of-sample from {OOS_START[:4]} with full-sample factor loadings (a look-ahead in the factor construction).")
 R.table(RES_OOS.pivot(index="model", columns="h", values=["RMSFE", "rel_RMSFE", "dir_acc"]), "Out-of-sample RMSFE, RMSFE relative to M1, and directional accuracy for acceleration/deceleration, by horizon (months)")
@@ -529,8 +518,7 @@ for h in [3, 6, 12]:
     Xp = pd.DataFrame({"D_res": zscore(D_res), "pi12": pi12, "B_dem": F["B_dem"]}).reindex(D_res.index); r = ols(Y[f"dpi_{h}"].reindex(D_res.index), Xp, hac=h)
     prow[f"{h}m"] = {"beta D_res (pp per sd)": r.params["D_res"], "t": r.tvalues["D_res"], "gamma pi12": r.params["pi12"], "t ": r.tvalues["pi12"], "delta B_dem": r.params["B_dem"], "t  ": r.tvalues["B_dem"], "R2": r.rsquared}
 PRED = pd.DataFrame(prow)
-R.p("Hypothesis: disagreement between inflation indicators and demand or financial indicators may be especially common when inflation is driven by supply or relative-price shocks rather than aggregate demand. "
-    "This section is descriptive: episodes are classified by inflation and demand, disagreement is compared across them, and its correlates and predictive content are tested.")
+R.p(TEXT["p17_hypothesis_disagreement_betwe"])
 R.p(f"Regimes from core PCE 12m and the demand block's first PC, each above or below its median. Current regime: {regime.iloc[-1]}. Descriptive only; a sign-restricted VAR or external instruments would be the structural extension.")
 R.table(reg_tab, "Disagreement by regime"); R.table(pd.DataFrame(corr_rows).T, "Contemporaneous correlates of disagreement (standardized regressors, HAC t)")
 R.table(PRED, "Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)")

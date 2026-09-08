@@ -219,8 +219,9 @@ def block_eda(name, df, ref, flip=False, title=""):
         im = a.imshow(res[order].T.values, aspect="auto", cmap="RdBu_r", vmin=-3, vmax=3, extent=[mdates.date2num(res.index[0]), mdates.date2num(res.index[-1]), len(order), 0]); a.xaxis_date(); a.grid(False)
         last = res[order].iloc[-3:].mean()                       # label every variable when readable, otherwise only those with a large end-of-sample residual
         lab_rows = list(range(len(order))) if len(order) <= 45 else [i for i, c in enumerate(order) if abs(last[c]) > 1.0]
-        a.set_yticks([i + 0.5 for i in lab_rows]); a.set_yticklabels([f"{vname(order[i])} ({last[order[i]]:+.1f})" for i in lab_rows], fontsize=5.5 if len(lab_rows) > 25 else 7); a.tick_params(axis="y", length=0)
-        a.set_title(f"Residuals from the {lab} fit (ordered by |loading|; red = above what the factors imply; label = last-3-month mean)"); fig.colorbar(im, ax=a, shrink=.8, pad=.01)
+        a.yaxis.tick_right(); a.set_yticks([i + 0.5 for i in lab_rows]); a.set_yticklabels([f"{vname(order[i])} ({last[order[i]]:+.1f})" for i in lab_rows], fontsize=5.5 if len(lab_rows) > 25 else 7); a.tick_params(axis="y", length=0)
+        a.set_title(f"Residuals from the {lab} fit (ordered by |loading|; red = above what the factors imply; label = last-3-month mean, sd)")
+        fig.colorbar(im, ax=a, orientation="horizontal", shrink=.35, pad=.12, aspect=40)
     corr_panel(ax[1, 0], l1, "PC1"); heat(ax[1, 1], res1, l1, "one-factor"); corr_panel(ax[2, 0], l2, "PC2"); heat(ax[2, 1], res2, l1, "two-factor")
     plt.tight_layout(); R.fig(fig, f"block_{name}", title)
     top_res = res1.iloc[-1].dropna(); top_res = top_res.reindex(top_res.abs().sort_values().index[-3:][::-1]); res = res1

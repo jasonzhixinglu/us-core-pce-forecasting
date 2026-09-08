@@ -63,7 +63,7 @@ TEXT = {
   "To project its future trajectory, we collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.",
 
  's04_the_first_common_factor_in_eac':
-  "The first common factor in each of the five blocks is near its historical average, so we don't see evidence of overheating, but neither do we see evidence of current conditions being significantly restrictive.",
+  "The first common factor in each of the five blocks is near its historical average: we don't see evidence of overheating, but neither do we see evidence of current conditions being significantly restrictive. The residuals point to inflation expectations running hotter than expected while demand is somewhat weaker than expected, consistent with recent supply-side shocks from energy and tariffs.",
 
  's05_while_we_dont_see_evidence_of':
   "While we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.",

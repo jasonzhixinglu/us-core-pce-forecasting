@@ -74,7 +74,7 @@ class Report:
         css = ("body{font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;max-width:1000px;margin:36px auto;padding:0 24px;color:#1a1a1a}"
                "h1{font-size:26px;margin-bottom:4px} h2{font-size:19px;border-bottom:1px solid #bbb;padding-bottom:3px;margin-top:40px} h3{font-size:15px;margin-top:22px;color:#333}"
                "p{margin:8px 0 10px} .summary{background:#f4f6f9;border-left:4px solid #1f3b5c;padding:10px 16px;margin:16px 0} .summary ul{margin:6px 0 0 16px;padding:0} .summary li{margin:4px 0}"
-               ".note{background:#fbf7ea;border-left:4px solid #d4a017;padding:8px 14px;margin:12px 0;font-size:13px} .toc{font-size:13px;columns:2;margin:10px 0 20px} .toc a{text-decoration:none;color:#1f3b5c}"
+               ".note{background:#fbf7ea;border-left:4px solid #d4a017;padding:8px 14px;margin:12px 0;font-size:13px} .toc{font-size:13px;margin:10px 0 20px} .toc a{text-decoration:none;color:#1f3b5c}"
                ".tbl{margin:12px 0 18px;overflow-x:auto} .cap{font-size:12px;color:#555;font-style:italic;margin-bottom:4px} table.t{border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;font-size:12px}"
                ".t th,.t td{padding:3px 9px;border-bottom:1px solid #e3e3e3;text-align:right;white-space:nowrap} .t th{background:#f0f0f0;font-weight:600} .t td:first-child,.t th:first-child{text-align:left}"
                ".t.small{font-size:11px} figure{margin:14px 0 20px} img{max-width:100%;border:1px solid #eee} figcaption{font-size:12px;color:#555;font-style:italic;margin-top:4px} ul{margin:6px 0 10px 20px} li{margin:4px 0}")
@@ -675,8 +675,12 @@ R.summary([
     f"Core PCE currently runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",
     TEXT["s02_we_collect_data_across_five_bl"],
     f"A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of {fc_str} percent at {hs_str} months ahead, "
-    f"that is, a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the next 12 months.",
+    f"a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the next 12 months. The near-term decline is largely arithmetic, as the strong quarters of early 2026 drop out of the 12-month window; "
+    f"beyond that the model expects quarterly core inflation to settle near {QF.loc[T, 4]:.1f} percent.",
+    f"The pace of deceleration is not robust to the information set: a univariate AR({AR_ORDER}) projects {NOW.loc['M1 time series', '12m']:.1f} percent at 12 months and the global-factor-only model {NOW.loc['M2 global factors', '12m']:.1f}, "
+    f"and the univariate model forecasts better pseudo-out-of-sample than either factor model (relative RMSE {REL.loc['M3 global + block', '12m']:.2f} for the full model at 12 months).",
     TEXT["s04_the_first_common_factor_in_eac"],
     TEXT["s06_across_the_second_principal_co"],
-    TEXT["s07_the_five_blocks_of_indicators_a"]])
+    f"The closest historical analogs by the pattern of block residuals are {pd.Timestamp(A1.index[1]):%B %Y} and {pd.Timestamp(A1.index[0]):%B %Y}, with {pd.Timestamp(A1.index[2]):%B %Y} as a mirror image: "
+    f"in the two energy-shock episodes, 2006 and 2015, the shock did not pass into core. Today differs in level, with core PCE {B1['pce_core_12m'].loc[T] - B1['pce_trim_12m'].loc[T]:.1f} pp above trimmed PCE, a gap none of the analogs showed."])
 R.write("report"); print(f"report.md / report.html written in {time.time()-t0:.0f}s; {len(list(FIG.glob('*.png')))} figures")

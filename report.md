@@ -5,10 +5,11 @@
 
 - Core PCE currently runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.
 - To project its future trajectory, we collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.
-- A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of 3.3 / 2.9 / 2.4 / 2.4 percent at 3/6/12/24 months ahead, that is, a deceleration of 0.9 pp over the next 12 months.
-- The first common factor in each of the five blocks is near its historical average, so we don't see evidence of overheating, but neither do we see evidence of current conditions being significantly restrictive.
+- A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of 3.3 / 2.9 / 2.4 / 2.4 percent at 3/6/12/24 months ahead, a deceleration of 0.9 pp over the next 12 months. The near-term decline is largely arithmetic, as the strong quarters of early 2026 drop out of the 12-month window; beyond that the model expects quarterly core inflation to settle near 2.3 percent.
+- The pace of deceleration is not robust to the information set: a univariate AR(12) projects 3.1 percent at 12 months and the global-factor-only model 2.7, and the univariate model forecasts better pseudo-out-of-sample than either factor model (relative RMSE 1.14 for the full model at 12 months).
+- The first common factor in each of the five blocks is near its historical average: we don't see evidence of overheating, but neither do we see evidence of current conditions being significantly restrictive. The residuals point to inflation expectations running hotter than expected while demand is somewhat weaker than expected, consistent with recent supply-side shocks from energy and tariffs.
 - Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.
-- The five blocks of indicators all reflect a general inflation common factor, which is currently about neutral, but the residuals show that inflation expectations run hotter than expected while demand is somewhat weaker than expected, perhaps reflecting recent supply-side shocks from energy and tariffs.
+- The closest historical analogs by the pattern of block residuals are July 2006 and May 1993, with December 2015 as a mirror image: in the two energy-shock episodes, 2006 and 2015, the shock did not pass into core. Today differs in level, with core PCE 1.0 pp above trimmed PCE, a gap none of the analogs showed.
 
 
 ## Introduction

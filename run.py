@@ -197,7 +197,38 @@ R.p(f"{(VER['status'] == 'ok').sum()} of {len(VER)} FRED series were downloaded 
 R.p("For each block the same diagnostic is shown: the variables are standardized, a principal-components decomposition is computed, and four panels report the scree (evidence of one versus several dimensions), the correlation of each variable with the first component (closer to one means more aligned with the block's common factor), "
     "the first component over time as a one-line summary of the block, and the residuals from the one-factor fit as a heatmap (whether recent months look different from history).")
 # ------------------------------------------------------------------ block EDA
-BPC = {}
+import re
+GROUPS = {"infl": [("momentum", r"less|_d\d+_|accel"), ("persistent-measure level", r"sticky|median|trim"), ("flexible-price level", r"flex"), ("headline/core level", r".")],
+          "dist": [("breadth", r"share_gt"), ("breadth momentum", r"share_(accel|decel)"), ("dispersion", r"xs_(sd|iqr|p90|skew)|upper_tail"), ("central tendency", r"xs_median")],
+          "exp": [("dispersion", r"_sd|_iqr"), ("household-professional/market gaps", r"mich_less|spf_less"), ("term structure", r"less"), ("households", r"mich"), ("professionals", r"spf"), ("model-based", r"clev"), ("markets", r"bei")],
+          "dem": [("wages", r"ahe|eci|comp"), ("labor market", r"unrate|claims|payroll|vu_|quits"), ("activity", r"real_|ip_|capu|gdp"), ("sentiment", r"sentiment")],
+          "fin": [("risk pricing", r"vix|baa|gz|ebp|term_premium|mortgage"), ("conditions indexes", r"nfci"), ("rates", r"fedfunds|dgs|term_2s10s|real_10y"), ("asset prices", r"equity|usd|oil|ppi"), ("credit supply", r"sloos")]}
+def group_of(block, v):
+    for g, rx in GROUPS[block]:
+        if re.search(rx, v): return g
+    return "other"
+def describe_factor(block, l, k=8):
+    """Which variable groups a factor aligns with, from its top-k |correlations|, split by sign."""
+    tp = l.reindex(l.abs().sort_values(ascending=False).index[:k]); pos, neg = tp[tp > 0], tp[tp < 0]
+    def side(x): 
+        if x.empty: return "none"
+        g = pd.Series([group_of(block, vname(c)) for c in x.index]).value_counts(); return ", ".join(f"{k_} ({n})" for k_, n in g.items()) + "; e.g. " + ", ".join(vname(c) for c in x.index[:3])
+    return f"aligned positively with {side(pos)}; inverted: {side(neg)}"
+
+BPC = {}; DESC = {}
+READING = {   # one-line interpretations, written against the estimated loadings; the data-driven description printed alongside is the check
+ ("infl", 1): "Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.",
+ ("infl", 2): "Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).",
+ ("dist", 1): "Reading: breadth and central tendency of the price-change distribution, how many categories are rising fast; a broad-inflation factor.",
+ ("dist", 2): "Reading: two-sided dispersion (IQR, share decelerating) against upper-tail concentration and skewness; separates wide relative-price dispersion from a few categories spiking.",
+ ("exp", 1): "Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.",
+ ("exp", 2): "Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.",
+ ("dem", 1): "Reading: output and employment growth, the business-cycle factor.",
+ ("dem", 2): "Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.",
+ ("fin", 1): "Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.",
+ ("fin", 2): "Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.",
+ "G1": "Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.",
+ "G2": "Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state."}
 def block_eda(name, df, ref, flip=False, title=""):
     """Standardize over the panel window, PCA; figure: scree and PC1/PC2 paths; correlations with PC1 and one-factor residuals; correlations with PC2 and two-factor residuals."""
     Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]
@@ -224,6 +255,9 @@ def block_eda(name, df, ref, flip=False, title=""):
         fig.colorbar(im, ax=a, orientation="horizontal", shrink=.35, pad=.12, aspect=40)
     corr_panel(ax[1, 0], l1, "PC1"); heat(ax[1, 1], res1, l1, "one-factor"); corr_panel(ax[2, 0], l2, "PC2"); heat(ax[2, 1], res2, l2, "two-factor")
     plt.tight_layout(); R.fig(fig, f"block_{name}", title)
+    DESC[(name, 1)] = describe_factor(name, l1); DESC[(name, 2)] = describe_factor(name, l2)
+    R.p(f"PC1 is {DESC[(name, 1)]}. {READING.get((name, 1), '')}")
+    R.p(f"PC2 is {DESC[(name, 2)]}. {READING.get((name, 2), '')}")
     top_res = res1.iloc[-1].dropna(); top_res = top_res.reindex(top_res.abs().sort_values().index[-3:][::-1]); res = res1
     dim = "one dominant dimension" if ex[0] > 2 * ex[1] else "at least two dimensions of comparable size"
     R.p(f"{Zb.shape[1]} variables from {Zb.index[0]:%Y-%m}. The first three components explain {100*ex[0]:.0f}, {100*ex[1]:.0f}, and {100*ex[2]:.0f} percent of the variance, which points to {dim}. "
@@ -350,7 +384,16 @@ R.p("The factor model is X = Lambda_G G + lambda_B B + e: two global factors com
 R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. Two global PCs on the standardized panel explain {100*exG.sum():.0f}% of its variance (G1 {100*exG[0]:.0f}%, G2 {100*exG[1]:.0f}%); "
     f"one PC per block on the residual explains {', '.join(f'{b} {100*v:.0f}%' for b, v in exB.items())} of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). "
     f"VAR(1) own-persistence: {', '.join(f'{k} {v:.2f}' for k, v in persist.items())}.")
-R.bullets([f"G1 loads on: {top(LG['G1'])}", f"G2 loads on: {top(LG['G2'])}"] + [f"B_{b} loads on: {top(LB[b])}" for b in BLOCKS])
+LGc = {g: Zfill.corrwith((G[g] - G[g].mean()) / G[g].std()) for g in ("G1", "G2")}
+def describe_global(l, k=10):
+    tp = l.reindex(l.abs().sort_values(ascending=False).index[:k]); pos, neg = tp[tp > 0], tp[tp < 0]
+    def side(x):
+        if x.empty: return "none"
+        g = pd.Series([f"{b_} {group_of(b_, c)}" for b_, c in x.index]).value_counts(); return ", ".join(f"{k_} ({int(n)})" for k_, n in g.items()) + "; e.g. " + ", ".join(vname(c) for c in x.index[:3])
+    blk = pd.Series([b_ for b_, _ in tp.index]).value_counts(); return f"drawn from {', '.join(f'{k_} ({int(n)})' for k_, n in blk.items())} among its top-{k} correlates; aligned positively with {side(pos)}; inverted: {side(neg)}"
+R.p(f"G1 is {describe_global(LGc['G1'])}. {READING.get('G1', '')}")
+R.p(f"G2 is {describe_global(LGc['G2'])}. {READING.get('G2', '')}")
+R.bullets([f"B_{b} loads on: {top(LB[b])}" for b in BLOCKS])
 fig, axes = plt.subplots(1, 2, figsize=(15, 3.6))
 Fz[["G1", "G2"]].plot(ax=axes[0], lw=1.2, color=["k", "tab:red"]); axes[0].set_title("Global factors (standardized)")
 Fz[[c for c in Fz if c.startswith("B_")]].plot(ax=axes[1], lw=1); axes[1].set_title("Block-specific factors (standardized)")

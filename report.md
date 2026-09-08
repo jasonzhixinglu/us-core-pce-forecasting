@@ -49,6 +49,10 @@ For the principal indexes the multi-horizon rates capture the level of inflation
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
+PC1 is aligned positively with headline/core level (5), persistent-measure level (3); e.g. cpi_trim_3m, cpi_12m, pce_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.
+
+PC2 is aligned positively with momentum (4); e.g. cpi_sticky_3m_less_12m, cpi_core_sticky_3m_less_12m, cpi_sticky_6m_less_12m; inverted: persistent-measure level (3), headline/core level (1); e.g. cpi_sticky_12m, cpi_core_sticky_12m, cpi_svc_xe_12m. Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).
+
 118 variables from 1985-01. The first three components explain 36, 20, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at -0.2 standard deviations today, the 45th percentile of its history. The largest deviations from what the common factor implies are cpi_flex_accel (-2.5 sd), cpi_accel (-2.2 sd), pce_accel (-1.8 sd).
 
 
@@ -68,6 +72,10 @@ Cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI ex
 
 ![Block 2, price-change distribution](figures/block_dist.png)
 *Block 2, price-change distribution*
+
+PC1 is aligned positively with breadth (6), central tendency (2); e.g. xs_median_6m, share_gt4_6m, share_gt3_6m; inverted: none. Reading: breadth and central tendency of the price-change distribution, how many categories are rising fast; a broad-inflation factor.
+
+PC2 is aligned positively with dispersion (2), breadth momentum (1); e.g. xs_iqr_6m, xs_iqr_3m, share_decel_3m; inverted: dispersion (4), breadth momentum (1); e.g. upper_tail_share_6m, xs_skew_6m, share_accel_3m. Reading: two-sided dispersion (IQR, share decelerating) against upper-tail concentration and skewness; separates wide relative-price dispersion from a few categories spiking.
 
 39 variables from 1985-01. The first three components explain 42, 17, and 12 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 55th percentile of its history. The largest deviations from what the common factor implies are upper_tail_share_6m (+1.7 sd), share_decel_3m (+1.4 sd), xs_iqr_12m (-1.4 sd).
 
@@ -90,6 +98,10 @@ Levels of expected inflation, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI medi
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
+PC1 is aligned positively with term structure (3), markets (2), professionals (1), model-based (1), households (1); e.g. spf_cpi_4q, spf_4q_less_10y, clev_1y; inverted: none. Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.
+
+PC2 is aligned positively with household-professional/market gaps (3), dispersion (2), term structure (1), households (1); e.g. mich_1y_less_clev10, mich_less_spf, mich_less_bei5; inverted: model-based (1); e.g. clev_10y. Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.
+
 17 variables from 1985-01. The first three components explain 31, 28, and 13 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 56th percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_5y_less_5y5y (+0.5 sd), bei_10y (+0.5 sd).
 
 
@@ -107,6 +119,10 @@ Rates in levels (and 12-month changes for unemployment), quantities as annualize
 
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
+
+PC1 is aligned positively with activity (5), labor market (1), wages (1); e.g. gdp_yoy, payrolls_12m, real_pce_12m; inverted: labor market (1); e.g. unrate_d12. Reading: output and employment growth, the business-cycle factor.
+
+PC2 is aligned positively with wages (3), labor market (3); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: labor market (1), activity (1); e.g. unrate, real_retail_6m. Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.
 
 21 variables from 1985-01. The first three components explain 44, 19, and 9 percent of the variance, which points to one dominant dimension. The first component stands at -0.1 standard deviations today, the 31st percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
 
@@ -128,6 +144,10 @@ Monthly averages of daily data; policy and Treasury rates, term spread, real rat
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
+PC1 is aligned positively with asset prices (1); e.g. equity_12m_ret; inverted: risk pricing (4), conditions indexes (2), credit supply (1); e.g. ebp, gz_spread, baa_spread. Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.
+
+PC2 is aligned positively with rates (5), risk pricing (1), credit supply (1); e.g. dgs2, dgs10, real_10y_clev; inverted: risk pricing (1); e.g. baa_spread. Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.
+
 22 variables from 1985-01. The first three components explain 27, 25, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.7 standard deviations today, the 79th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.6 sd), mortgage_spread (+0.7 sd), term_2s10s (-0.5 sd).
 
 
@@ -137,8 +157,10 @@ The factor model is X = Lambda_G G + lambda_B B + e: two global factors common t
 
 The panel has 217 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 46% of its variance (G1 30%, G2 16%); one PC per block on the residual explains infl 23%, dist 26%, exp 48%, dem 40%, fin 33% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.96, G2 0.95, B_infl 0.85, B_dist 0.81, B_exp 0.90, B_dem 0.80, B_fin 0.98.
 
-- G1 loads on: cpi_trim_3m (+0.12), cpi_12m (+0.11), pce_12m (+0.11)
-- G2 loads on: cpi_sticky_3m_less_12m (+0.13), cpi_core_sticky_3m_less_12m (+0.13), cpi_sticky_6m_less_12m (+0.13)
+G1 is drawn from infl (8), dist (2) among its top-10 correlates; aligned positively with infl headline/core level (5), infl persistent-measure level (3), dist central tendency (2); e.g. cpi_trim_3m, cpi_12m, pce_12m; inverted: none. Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.
+
+G2 is drawn from infl (10) among its top-10 correlates; aligned positively with infl momentum (6); e.g. cpi_sticky_3m_less_12m, cpi_core_sticky_3m_less_12m, cpi_sticky_6m_less_12m; inverted: infl persistent-measure level (3), infl headline/core level (1); e.g. cpi_sticky_12m, cpi_core_sticky_12m, cpi_svc_xe_12m. Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state.
+
 - B_infl loads on: pce_3m_less_12m (+0.19), cpi_median_d6_12m (-0.18), cpi_sticky_d6_12m (-0.18)
 - B_dist loads on: xs_sd_12m (+0.35), xs_sd_6m (+0.35), xs_p90_p10_6m (+0.33)
 - B_exp loads on: mich_less_spf (+0.40), mich_1y_less_clev10 (+0.38), mich_less_bei5 (+0.33)

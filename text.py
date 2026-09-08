@@ -6,7 +6,7 @@ interpretations. Sentences that embed computed numbers stay in run.py as f-strin
 
 TEXT = {
  'p01_all_of_these_are_treated_as_po':
-  "All of these are treated as potentially useful signals for future inflation. Our analysis takes the following steps. Predictors are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, and 12 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.",
+  "All of these are potentially useful signals for future inflation. Our analysis takes the following steps. Indicators are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, 12, and 24 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.",
 
  'p02_for_the_linear_m3_equation_eac':
   "For the linear M3 equation each contribution is the coefficient times the current value's deviation from its sample mean, so contributions sum to the forecast's deviation from the target's mean. This says which signals, at their current values, push the forecast away from its mean; it is not a news decomposition.",
@@ -24,10 +24,10 @@ TEXT = {
   'Caveat: latest-vintage data and full-sample factor loadings; the news decomposition is pseudo-real-time (no data revisions; publication lags only at the ragged edge). Rule-based wording thresholds are in the answers section of run.py.',
 
  'p07_we_ask_what_the_current_config':
-  "We ask what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.",
+  "We ask what current inflation-related indicators imply for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.",
 
  'p07b_the_motivation_is_the_current':
-  'The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.',
+  "This is motivated by the current debate around the Fed's September meeting, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.",
 
  'p08_the_approach_has_five_steps_p':
   "The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.",
@@ -63,7 +63,7 @@ TEXT = {
   "We collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.",
 
  's04_the_first_common_factor_in_eac':
-  "The first common factor in each of the five blocks is near its historical average, although we see some notable divergence in the second factors.",
+  "The first common factor in each of the five blocks is near its historical average, so while we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.",
 
  's05_while_we_dont_see_evidence_of':
   "While we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.",
@@ -90,23 +90,40 @@ READING = {   # one-line interpretations of the estimated factors; the data-driv
 
 BLOCK_PROSE = {   # two paragraphs per block, read off the block figure: what PC1 and PC2 are, and where each stands now
  "infl": [
-  "PC1 is the general inflation factor, and comoves positively with all inflation measures, and correlation is highest with recent core and trimmed mean inflation measures. This measure is overall about neutral.",
-  "PC2 is capturing momentum, loading positively on 3m inflation measures and negatively on 12m inflation measures, so PC2 is negative when inflation is decelerating. Inflation was recently accelerating since the Iran war, but has now come back down to about neutral.",
+  "PC1 is the general inflation factor, comoving positively with all inflation measures and correlating most strongly with recent core and trimmed-mean measures. It currently sits close to its historical average.",
+  "PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It rose with the Iran war and has since returned to average, without yet turning negative.",
  ],
  "dist": [
-  "PC1 is the breadth factor, and comoves positively with the share of categories rising quickly and with median category inflation, and correlation is highest with the 6-month measures. Breadth spiked to +1.5 standard deviations three months ago but has since come back to about neutral.",
-  "PC2 separates wide two-sided dispersion from upper-tail concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so PC2 is negative when a few categories are doing the work rather than the whole distribution shifting. PC2 ran close to -1.5 through the middle of the year, and has since returned to about neutral.",
+  "PC1 is the breadth factor, comoving positively with the share of categories rising quickly and with median category inflation, and correlating most strongly with the 6-month measures. Breadth spiked to +1.5 standard deviations three months ago and has since returned to average.",
+  "PC2 separates wide two-sided dispersion from right-tailed concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, possibly reflecting energy and tariff-related passthrough, and has since returned to average.",
  ],
  "exp": [
-  "PC1 is the level of expected inflation, and comoves positively with every source, and correlation is highest with the Cleveland model and the SPF one-year forecast. The level is about neutral.",
-  "PC2 is the wedge between near-term uncertainty and long-run anchoring, loading positively on forecaster dispersion and household expectations and negatively on the 10-year anchors, so PC2 is positive when households and near-term forecasters run ahead of the anchors. It sits modestly above average, having spiked earlier in the year.",
+  "PC1 is the level of expected inflation, comoving positively with every source and correlating most strongly with the Cleveland Fed measures and the SPF one-year forecast. It currently sits close to its historical average.",
+  "PC2 is the wedge between near-term disagreement and long-run expectations, loading positively on forecaster dispersion and household expectations and negatively on the 10-year measures, so it turns positive when households and near-term forecasters run ahead of the long-run view. It sits modestly above average, having partially unwound its spike earlier in the year.",
  ],
  "dem": [
-  "PC1 is the business-cycle factor, and comoves positively with output, employment and real spending growth, and correlation is highest with year-on-year GDP and compensation. Activity sits a little below its historical average.",
-  "PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-unemployment ratio and quits and negatively on unemployment, so PC2 is positive when the labor market is tight relative to activity. It remains above average, though it has drifted down steadily over the past year.",
+  "PC1 is the standard business-cycle factor, comoving positively with output, employment and real spending growth, and correlating most strongly with year-on-year GDP and compensation growth. Activity sits a little below its historical average.",
+  "PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-unemployment ratio and quits and negatively on unemployment, so it turns positive when the labor market is tight relative to activity. It remains above average, though it has drifted down steadily over the year.",
  ],
  "fin": [
-  "PC1 is the rates dimension of financial conditions, inverted so that positive means looser, and correlation is highest with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average, so this dimension is neither restrictive nor accommodative.",
-  "PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so PC2 is positive when financial stress is elevated. It sits well below average, so risk pricing is unusually benign rather than stressed.",
+  "PC1 is the common factor of interest rates, inverted so that positive implies looser financial conditions, and correlating most strongly with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average.",
+  "PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average: risk pricing is unusually benign.",
  ],
+}
+
+SECTION2 = {   # factor interpretations, written against the estimated loadings (run.py prints them to the console)
+ 'factors':
+  "G1 is the common inflation level: it loads most heavily on the SPF one-year forecast and on trimmed-mean CPI and PCE at 3 and 6 months, and accounts for roughly three quarters of the variance of the average inflation series. "
+  "G2 is a relative-price state rather than a demand state: it loads on flexible-price CPI, the upper-tail share of the category distribution and commodity PPI, so it rises when a narrow set of volatile prices moves rather than the whole distribution.",
+
+ 'blocks':
+  "The block factors are what remains in each block once the two global states are accounted for:",
+}
+
+BLOCK_FACTOR = {   # one line per block factor
+ "infl": "B_infl: 1-month core and flexible-price deviations, inverted and weakly loaded; it lifts the share of inflation-block variance explained from 74 to 77 percent, so it adds little the global states do not already carry.",
+ "dist": "B_dist: dispersion across categories, loading on the cross-sectional standard deviation and the 90-10 spread.",
+ "exp": "B_exp: near-term disagreement against long-run anchoring, positive on SPF dispersion and negative on the Cleveland and SPF 10-year expectations.",
+ "dem": "B_dem: the business cycle, loading on year-on-year GDP, real consumption and industrial production. It is not a labor-market tightness factor: wages and the vacancy-unemployment ratio load on the second principal component of the block, which the model does not carry.",
+ "fin": "B_fin: the level of interest rates, inverted, loading on the 10-year real rate, the 10-year yield and the term premium.",
 }

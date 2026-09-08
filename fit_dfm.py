@@ -21,6 +21,7 @@ CACHE = HERE / "cache"
 
 
 def main():
+    specs = sys.argv[1:] or list(dfm_spec.SPECS)
     panel = CACHE / dfm_spec.PANEL_FILE
     if not panel.exists():
         sys.exit(f"{panel} not found: run run.py once so it can write the panel.")
@@ -28,22 +29,36 @@ def main():
     stamp = dfm_spec.stamp_of(X, end)
     print(f"panel {X.shape[0]} months x {X.shape[1]} variables through {end:%Y-%m}")
 
-    mod = dfm_spec.build(X, blocks)
+    for spec in specs:
+        fit_one(X, blocks, stamp, spec)
+
+
+def fit_one(X, blocks, stamp, spec):
+    print(f"\n--- {spec}: {dfm_spec.SPEC_LABEL[spec]}")
+    mod = dfm_spec.build(X, blocks, spec)
     print(f"{mod.k_states} states, {len(mod.param_names)} parameters; EM up to {dfm_spec.MAXITER} iterations")
     t0 = time.time()
     res = mod.fit(maxiter=dfm_spec.MAXITER, tolerance=dfm_spec.TOL, disp=10)
     el = time.time() - t0
 
-    it = res.mle_retvals["iterations"]
-    conv = bool(res.mle_retvals.get("converged", False))
-    print(f"{'converged' if conv else 'STOPPED AT CAP, NOT CONVERGED'} after {it} iterations, "
-          f"{el:.0f}s ({el / max(it, 1):.1f}s per iteration), llf {res.llf:.1f}")
-    if not conv:
-        print("WARNING: parameters are being cached anyway; the report will say 'not converged'.")
+    # Save the parameters before anything else can raise: the fit is the expensive part and
+    # must never be lost to a bookkeeping error.
+    out = CACHE / dfm_spec.params_file(spec)
+    params = np.asarray(res.params)
+    np.savez(out, params=params, stamp=stamp, iterations=-1, converged=False, llf=res.llf)
 
-    np.savez(CACHE / dfm_spec.PARAMS_FILE, params=np.asarray(res.params), stamp=stamp,
-             iterations=it, converged=conv, llf=res.llf)
-    print(f"wrote {CACHE / dfm_spec.PARAMS_FILE}")
+    # statsmodels' EM path stores a Bunch with 'iter' (not 'iterations') and no convergence
+    # flag; it stops early only when the criterion is met, so iter < maxiter means converged.
+    rv = getattr(res, "mle_retvals", None)
+    it = int(getattr(rv, "iter", -1)) if rv is not None else -1
+    conv = 0 <= it < dfm_spec.MAXITER
+    np.savez(out, params=params, stamp=stamp, iterations=it, converged=conv, llf=res.llf)
+
+    per = f"{el / it:.1f}s per iteration" if it > 0 else "iteration count unavailable"
+    print(f"{'converged' if conv else 'STOPPED AT CAP, NOT CONVERGED'} after {it} iterations, {el:.0f}s ({per}), llf {res.llf:.1f}")
+    if not conv:
+        print("WARNING: parameters cached anyway; the report will say 'not converged'.")
+    print(f"wrote {out}")
 
 
 if __name__ == "__main__":

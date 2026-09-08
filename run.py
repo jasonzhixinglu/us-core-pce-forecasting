@@ -12,22 +12,23 @@ Data: latest-vintage FRED (CSV endpoint, no key). Non-FRED, flagged: SPF individ
 forecasts (Philadelphia Fed) and the Gilchrist-Zakrajsek excess bond premium (Federal
 Reserve). Not a real-time evaluation; swap fred() for an ALFRED loader to go real-time.
 """
-import io, sys, time, warnings, html, subprocess
+import io, sys, time, warnings, html, subprocess, pickle
 from pathlib import Path
 import numpy as np, pandas as pd, requests
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt, matplotlib.dates as mdates
 import statsmodels.api as sm
 from statsmodels.tsa.api import VAR
+from statsmodels.tsa.ar_model import AutoReg
 from scipy import stats
 warnings.filterwarnings("ignore")
 plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.alpha": 0.3, "font.size": 9})
 
 HERE = Path(__file__).resolve().parent; CACHE = HERE / "cache"; FIG = HERE / "figures"
-sys.path.insert(0, str(HERE)); from text import TEXT, READING, BLOCK_PROSE   # editable prose lives in text.py
+sys.path.insert(0, str(HERE)); from text import TEXT, READING, BLOCK_PROSE, SECTION2, BLOCK_FACTOR   # editable prose lives in text.py
 import dfm_spec   # shared DFM specification, so the cached fit matches the model used here
 for d in (CACHE, FIG): d.mkdir(exist_ok=True)
-REFRESH = "--refresh" in sys.argv; REFIT = "--refit" in sys.argv   # --refit re-runs the DFM EM (slow); otherwise cached parameters are reused
+REFRESH = "--refresh" in sys.argv; REFIT = "--refit" in sys.argv; RECOMPUTE = "--recompute" in sys.argv   # --refit re-runs the DFM EM (slow); otherwise cached parameters are reused
 START = "1985-01-01"; OOS_START = "2000-01-01"; H = [3, 6, 12, 24]
 UA = {"User-Agent": "Mozilla/5.0"}
 t0 = time.time()
@@ -43,8 +44,8 @@ class Report:
     def summary(self, lines): self.items.insert(self.summary_at, ("summary", list(lines)))
     def table(self, df, caption="", fmt="{:.2f}", small=False):
         df = df.copy()
-        for c in df.columns:
-            if pd.api.types.is_float_dtype(df[c]): df[c] = df[c].map(lambda v: "" if pd.isna(v) else fmt.format(v))
+        cell = lambda v: ("" if pd.isna(v) else fmt.format(v)) if isinstance(v, (float, np.floating)) else ("" if v is None else str(v))
+        for c in df.columns: df[c] = df[c].astype(object).map(cell)
         self.items.append(("table", df, caption, small))
     def fig(self, fig, name, caption=""):
         path = FIG / f"{name}.png"; fig.savefig(path, bbox_inches="tight"); plt.close(fig); self.items.append(("fig", f"figures/{name}.png", caption))
@@ -81,6 +82,19 @@ class Report:
         body = "".join(hb); first_h2 = body.index("<h2"); body = body[:first_h2] + toc_html + body[first_h2:]
         (HERE / f"{stem}.html").write_text(f"<!doctype html><html><head><meta charset='utf-8'><title>US inflation signals</title><style>{css}</style></head><body>{body}</body></html>", encoding="utf-8")
 R = Report()
+
+# =============================================================================== stage cache
+# Expensive intermediates that do not depend on chart or prose edits are pickled under a key that
+# changes when their inputs do. A chart tweak then reruns in well under a minute. --recompute
+# forces every stage; a stage also recomputes when its key (panel fingerprint, parameters) changes.
+STAGES = CACHE / "stages"; STAGES.mkdir(exist_ok=True)
+def stage(name, fn, key):
+    f = STAGES / f"{name}.pkl"
+    if f.exists() and not RECOMPUTE:
+        d = pickle.load(open(f, "rb"))
+        if d["key"] == key: print(f"[stage] {name}: cached"); return d["value"]
+    t = time.time(); v = fn(); pickle.dump({"key": key, "value": v}, open(f, "wb"))
+    print(f"[stage] {name}: computed in {time.time() - t:.0f}s"); return v
 
 # =============================================================================== helpers
 def fred(sid):
@@ -215,12 +229,18 @@ def describe_factor(block, l, k=8):
 BPC = {}; DESC = {}
 def block_eda(name, df, ref, flip=False, title=""):
     """Standardize over the panel window, PCA; figure: scree and PC1/PC2 paths; correlations with PC1 and one-factor residuals; correlations with PC2 and two-factor residuals."""
-    Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]
-    sc, ld, ex, Zf = pca(Zb, min(8, Zb.shape[1]))
-    sgn = np.sign(np.corrcoef(sc["PC1"], Zb[ref].fillna(0))[0, 1]) * (-1 if flip else 1)
-    f1 = sgn * sc["PC1"]; BPC[name] = f1; f1z = (f1 - f1.mean()) / f1.std(); l1 = Zf.corrwith(f1z)
-    f2z = (sc["PC2"] - sc["PC2"].mean()) / sc["PC2"].std(); l2 = Zf.corrwith(f2z); s2 = np.sign(l2.loc[l2.abs().idxmax()]); f2z, l2 = s2 * f2z, s2 * l2   # PC2 sign: largest |correlation| positive
-    res1 = (Zf - np.outer(f1z, l1)).where(Zb.notna()); res2 = (res1 - np.outer(f2z, l2)).where(Zb.notna())
+    def compute():   # the PCA with iterative imputation is the slow part; cached per block, keyed on the block's data
+        Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]
+        sc, ld, ex, Zf = pca(Zb, min(8, Zb.shape[1]))
+        sgn = np.sign(np.corrcoef(sc["PC1"], Zb[ref].fillna(0))[0, 1]) * (-1 if flip else 1)
+        f1 = sgn * sc["PC1"]; f1z = (f1 - f1.mean()) / f1.std(); l1 = Zf.corrwith(f1z)
+        f2z = (sc["PC2"] - sc["PC2"].mean()) / sc["PC2"].std(); l2 = Zf.corrwith(f2z); s2 = np.sign(l2.loc[l2.abs().idxmax()]); f2z, l2 = s2 * f2z, s2 * l2   # PC2 sign: largest |correlation| positive
+        res1 = (Zf - np.outer(f1z, l1)).where(Zb.notna()); res2 = (res1 - np.outer(f2z, l2)).where(Zb.notna())
+        return dict(Zb=Zb, ex=ex, f1=f1, f1z=f1z, l1=l1, f2z=f2z, l2=l2, res1=res1, res2=res2)
+    dfw = df[df.index >= START]
+    key = (name, START, dfw.shape, str(dfw.index[-1].date()), tuple(dfw.columns), ref, flip, float(np.nansum(dfw.values)))
+    c_ = stage(f"eda_{name}", compute, key=key)
+    Zb, ex, f1, f1z, l1, f2z, l2, res1, res2 = (c_[k] for k in ("Zb", "ex", "f1", "f1z", "l1", "f2z", "l2", "res1", "res2")); BPC[name] = f1
     fig, ax = plt.subplots(3, 2, figsize=(15, 12.5), gridspec_kw={"width_ratios": [1, 1.7], "height_ratios": [0.8, 1, 1]})
     ax[0, 0].bar(range(1, len(ex) + 1), 100 * ex, color="#1e293b"); ax[0, 0].set_title(f"Scree, % of variance (PC1 {100*ex[0]:.0f}%, PC2 {100*ex[1]:.0f}%)"); ax[0, 0].set_xticks(range(1, len(ex) + 1))
     ax[0, 1].plot(f1z.index, f1z, color="k", lw=1.3, label="PC1"); ax[0, 1].plot(f2z.index, f2z, color="k", lw=1, ls="--", label="PC2"); ax[0, 1].axhline(0, color="grey", lw=.6)
@@ -258,8 +278,9 @@ RATES = [("MEDCPIM158SFRBCLE", "MEDCPIM159SFRBCLE", "cpi_median", "Median CPI", 
          ("CORESTICKM157SFRBATL", "CORESTICKM159SFRBATL", "cpi_core_sticky", "Core sticky-price CPI", "Atlanta Fed via FRED"), ("FLEXCPIM157SFRBATL", "FLEXCPIM159SFRBATL", "cpi_flex", "Flexible-price CPI", "Atlanta Fed via FRED"),
          ("COREFLEXCPIM157SFRBATL", "COREFLEXCPIM159SFRBATL", "cpi_core_flex", "Core flexible-price CPI", "Atlanta Fed via FRED")]
 for sid, tag, name, src in IDX:
-    for h in (1, 3, 6, 12): B1[f"{tag}_{h}m"] = ann(m(sid), h)
-    reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "annualized 1/3/6/12-month log change of the index")
+    hs = (1, 3, 6, 12, 24) if tag == "pce_core" else (1, 3, 6, 12)   # 24m only for the target: the iterated forecast reads it at t+h
+    for h in hs: B1[f"{tag}_{h}m"] = ann(m(sid), h)
+    reg(1, f"{tag}_{{{','.join(str(h) for h in hs)}}}m", name, src, f"annualized {'/'.join(str(h) for h in hs)}-month log change of the index")
 for m1, m12, tag, name, src in RATES:
     r1, r12 = m(m1), m(m12); B1[f"{tag}_1m"] = r1; B1[f"{tag}_3m"] = r1.rolling(3).mean(); B1[f"{tag}_6m"] = r1.rolling(6).mean(); B1[f"{tag}_12m"] = r12
     reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate")
@@ -345,141 +366,243 @@ X = pd.concat(BLOCKS, axis=1); X = X[X.index >= START]; X = X.loc[:, (X.notna().
 END = B1["pce_core_12m"].dropna().index[-1]; X = X[X.index <= END]; Z = zscore(X)
 DICT = pd.DataFrame({"block": [b for b, _ in X.columns], "first_obs": [X[c].first_valid_index().date() for c in X.columns]}, index=[c for _, c in X.columns]); DICT.to_csv(CACHE / "data_dictionary.csv")
 
-R.h(2, "2. Factor structure")
-# Dynamic factor model: two global factors loading on the whole panel plus one factor per block,
-# all seven evolving as a joint VAR(1), with AR(1) idiosyncratic components. Estimated by EM; the
-# Kalman smoother handles missing values and the ragged edge, so no imputation step is needed.
-PARAMS = CACHE / dfm_spec.PARAMS_FILE; PANEL = CACHE / dfm_spec.PANEL_FILE
-dfm_spec.save_panel(PANEL, X, BLOCKS, END)                # so fit_dfm.py can estimate without rebuilding
+# =============================================================================== the factor model
+R.h(2, "2. A dynamic factor model of the panel")
+# Two nested specifications are estimated: global factors only, and global plus block factors.
+# Parameters are estimated jointly, so a restricted information set cannot be obtained by
+# zeroing factors out of the full fit; each needs its own EM run. Both run in a separate
+# process (see dfm_spec) and are cached, keyed by a fingerprint of the panel.
+dfm_spec.save_panel(CACHE / dfm_spec.PANEL_FILE, X, BLOCKS, END)
 stamp = dfm_spec.stamp_of(X, END)
-params = None if REFIT else dfm_spec.load_params(PARAMS, stamp)
-if params is None:                                        # estimate in a separate process: see dfm_spec
-    print("estimating the DFM (fit_dfm.py, separate process); this is the slow step")
-    subprocess.run([sys.executable, str(HERE / "fit_dfm.py")], check=True)
-    params = dfm_spec.load_params(PARAMS, stamp)
-    if params is None: sys.exit("fit_dfm.py did not produce parameters for the current panel")
-meta = np.load(PARAMS); dfm = dfm_spec.build(X, BLOCKS); dfm_res = dfm.smooth(params)
-dfm_note = ("EM, " + str(int(meta["iterations"])) + " iterations" + ("" if bool(meta["converged"]) else ", NOT CONVERGED"))
-F = dfm_res.factors.smoothed.rename(columns={"Global.1": "G1", "Global.2": "G2", **{b: f"B_{b}" for b in BLOCKS}})
-F = F[["G1", "G2"] + [f"B_{b}" for b in BLOCKS]]
+need = [s for s in dfm_spec.SPECS if REFIT or dfm_spec.load_params(CACHE / dfm_spec.params_file(s), stamp) is None]
+if need:
+    print(f"estimating the DFM ({', '.join(need)}) via fit_dfm.py; this is the slow step")
+    subprocess.run([sys.executable, str(HERE / "fit_dfm.py")] + need, check=True)
+
 REF = {"infl": ("infl", "pce_core_12m"), "dist": ("dist", "share_gt3_12m"), "exp": ("exp", "mich_1y"), "dem": ("dem", "payrolls_12m"), "fin": ("fin", "nfci")}
-sgn = lambda f, ref: np.sign(np.corrcoef(f, ref.reindex(f.index).fillna(0))[0, 1])
-F["G1"] *= sgn(F["G1"], Z[("infl", "pce_core_12m")]); F["G2"] *= sgn(F["G2"], Z["dem"].mean(axis=1))
-for b in BLOCKS: F[f"B_{b}"] *= sgn(F[f"B_{b}"], Z[REF[b]]) * (-1 if b == "fin" else 1)
-F = zscore(F); Fz = F   # factor scale is not identified; work in standard deviations throughout
-# Loadings by projection of the standardized panel on the standardized factors: used for the
-# descriptive text and for the news decomposition in section 5.
+VARS = [c for _, c in X.columns]; BLK = pd.Series({c: b for b, c in X.columns})
 Zfill = Z.fillna(0.0)
-LAM = pd.DataFrame(np.linalg.lstsq(F.values, Zfill.values, rcond=None)[0].T, index=Z.columns, columns=F.columns)
+
+def read_fit(spec):
+    """Load a cached fit and return its results object, loadings and transition, with the
+    factors rescaled to unit standard deviation and signed as inflationary pressure.
+
+    Loadings and dynamics are taken from the model's own estimates rather than re-derived by
+    projecting the panel on the smoothed factors: the factors are collinear enough that such a
+    projection is unstable (it produced loadings above 4 in standardized units)."""
+    par = dfm_spec.load_params(CACHE / dfm_spec.params_file(spec), stamp)
+    if par is None: sys.exit(f"no cached parameters for spec '{spec}'; run fit_dfm.py")
+    mod = dfm_spec.build(X, BLOCKS, spec); res = mod.smooth(par)
+    fac = ["Global.1", "Global.2"] + (list(BLOCKS) if spec == "full" else [])
+    P = pd.Series(np.asarray(res.params), index=list(mod.param_names))
+    lam = pd.DataFrame(0.0, index=VARS, columns=fac); A = pd.DataFrame(0.0, index=fac, columns=fac)
+    for nm, v in P.items():
+        if nm.startswith("loading."):
+            f, var = nm[len("loading."):].split("->"); lam.loc[var, f] = v
+        elif nm.startswith("L1.") and "eps" not in nm:
+            src, dst = nm[3:].split("->")
+            if src in fac and dst in fac: A.loc[dst, src] = v
+    Fr = res.factors.smoothed[fac]
+    sg = {"Global.1": np.sign(np.corrcoef(Fr["Global.1"], Z[REF["infl"]].fillna(0))[0, 1]),
+          "Global.2": np.sign(np.corrcoef(Fr["Global.2"], Z["dem"].mean(axis=1).fillna(0))[0, 1])}
+    for b in (BLOCKS if spec == "full" else []):
+        sg[b] = np.sign(np.corrcoef(Fr[b], Z[REF[b]].fillna(0))[0, 1]) * (-1 if b == "fin" else 1)
+    d = pd.Series({f: sg[f] * Fr[f].std() for f in fac})       # F = Fr / d, loadings scaled by d
+    Fs = (Fr / d).rename(columns={"Global.1": "G1", "Global.2": "G2", **{b: f"B_{b}" for b in (BLOCKS if spec == "full" else [])}})
+    lam = lam.mul(d, axis=1); lam.columns = Fs.columns; lam.index = Z.columns
+    A = pd.DataFrame(np.diag(1 / d) @ A.values @ np.diag(d), index=Fs.columns, columns=Fs.columns)
+    return dict(res=res, mod=mod, F=Fs, LAM=lam, A=A, meta=np.load(CACHE / dfm_spec.params_file(spec)))
+
+FITS = {s: read_fit(s) for s in dfm_spec.SPECS}
+FULL = FITS["full"]; dfm_res = FULL["res"]; F = FULL["F"]; Fz = F; LAM = FULL["LAM"]
 LG = LAM[["G1", "G2"]]; LB = {b: LAM.loc[LAM.index.get_level_values(0) == b, f"B_{b}"] for b in BLOCKS}
-fit_all = pd.DataFrame(F.values @ LAM.values.T, index=Z.index, columns=Z.columns)
-fit_g = pd.DataFrame(F[["G1", "G2"]].values @ LG.values.T, index=Z.index, columns=Z.columns)
-r2 = lambda fit: (1 - (Zfill - fit).var() / Zfill.var()).groupby(level=0).mean()
-R2_G, R2_ALL = r2(fit_g), r2(fit_all)
-var = VAR(F.dropna()).fit(1); persist = pd.Series(np.diag(var.coefs[0]), index=F.columns)
+com = lambda cols: pd.DataFrame(F[cols].values @ LAM[cols].values.T, index=Z.index, columns=Z.columns)
+r2 = lambda c: (1 - (Zfill - c).var() / Zfill.var()).groupby(level=0).mean()
+R2_G, R2_ALL = r2(com(["G1", "G2"])), r2(com(list(F.columns)))
+acf1 = F.apply(lambda s_: s_.autocorr())
+eig = np.abs(np.linalg.eigvals(FULL["A"].values)).max()
+it_full = int(FULL["meta"]["iterations"]); conv_full = bool(FULL["meta"]["converged"])
 top = lambda ld, k=3: ", ".join(f"{vname(c)} ({v:+.2f})" for c, v in ld.reindex(ld.abs().sort_values().index[-k:][::-1]).items())
 R.p(TEXT["p15_the_factor_model_is_x_lambda"])
-R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m} ({dfm_note}). Averaged over the series in each block, the two global factors account for "
-    f"{', '.join(f'{b} {100*v:.0f}%' for b, v in R2_G.items())} of the variance, and all seven factors together for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_ALL.items())}. "
-    f"Every factor is oriented so that higher = more inflationary pressure (financial: looser) and scaled to unit standard deviation. "
-    f"VAR(1) own-persistence: {', '.join(f'{k} {v:.2f}' for k, v in persist.items())}.")
-LGc = {g: Zfill.corrwith(F[g]) for g in ("G1", "G2")}
+R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. EM converged in {it_full} iterations{'' if conv_full else ' (NOT CONVERGED)'}. "
+    f"Averaged over the series in each block, the two global factors account for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_G.items())} of the variance, "
+    f"and all seven factors together for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_ALL.items())}. Every factor is oriented so that higher = more inflationary pressure "
+    f"(financial: looser) and scaled to unit standard deviation. First-order autocorrelation: {', '.join(f'{k} {v:.2f}' for k, v in acf1.items())}; "
+    f"the largest eigenvalue of the factor VAR is {eig:.2f}, so the system is stationary.")
+LGc = {g: LAM[g] for g in ("G1", "G2")}
 def describe_global(l, k=10):
     tp = l.reindex(l.abs().sort_values(ascending=False).index[:k]); pos, neg = tp[tp > 0], tp[tp < 0]
     def side(x):
         if x.empty: return "none"
         g = pd.Series([f"{b_} {group_of(b_, c)}" for b_, c in x.index]).value_counts(); return ", ".join(f"{k_} ({int(n)})" for k_, n in g.items()) + "; e.g. " + ", ".join(vname(c) for c in x.index[:3])
-    blk = pd.Series([b_ for b_, _ in tp.index]).value_counts(); return f"drawn from {', '.join(f'{k_} ({int(n)})' for k_, n in blk.items())} among its top-{k} correlates; aligned positively with {side(pos)}; inverted: {side(neg)}"
-R.p(f"G1 is {describe_global(LGc['G1'])}. {READING.get('G1', '')}")
-R.p(f"G2 is {describe_global(LGc['G2'])}. {READING.get('G2', '')}")
-R.bullets([f"B_{b} loads on: {top(LB[b])}" for b in BLOCKS])
+    blk = pd.Series([b_ for b_, _ in tp.index]).value_counts(); return f"drawn from {', '.join(f'{k_} ({int(n)})' for k_, n in blk.items())} among its top-{k} loadings; positive on {side(pos)}; inverted: {side(neg)}"
+# The generated descriptions go to the console; the report carries the hand-written reading in text.py.
+print(f"[G1] {describe_global(LGc['G1'])}")
+print(f"[G2] {describe_global(LGc['G2'])}")
+for b in BLOCKS: print(f"[B_{b}] loads on: {top(LB[b], 5)}")
+R.p(SECTION2["factors"])
+R.p(SECTION2["blocks"])
+R.bullets([BLOCK_FACTOR[b] for b in BLOCKS])
 fig, axes = plt.subplots(1, 2, figsize=(15, 3.6))
-Fz[["G1", "G2"]].plot(ax=axes[0], lw=1.2, color=["k", "tab:red"]); axes[0].set_title("Global factors (standardized)")
-Fz[[c for c in Fz if c.startswith("B_")]].plot(ax=axes[1], lw=1); axes[1].set_title("Block-specific factors (standardized)")
+F[["G1", "G2"]].plot(ax=axes[0], lw=1.2, color=["k", "tab:red"]); axes[0].set_title("Global factors (standardized)")
+F[[c for c in F if c.startswith("B_")]].plot(ax=axes[1], lw=1); axes[1].set_title("Block-specific factors (standardized)")
 for ax in axes: ax.axhline(0, color="grey", lw=.6); ax.legend(ncol=4, fontsize=8, frameon=False)
 R.fig(fig, "factors", "Global and block-specific factors.")
 
-# =============================================================================== targets and forecasts
-R.h(2, "3. Forecasting core PCE")
+# ------------------------------------------------------------------ targets and iterated forecasts
 pce_core = m("PCEPILFE"); logp = np.log(pce_core)
 Y = pd.DataFrame({f"pi_fut_{h}": 1200 / h * (logp.shift(-h) - logp) for h in H}); pi12 = 1200 / 12 * (logp - logp.shift(12))
 for h in H: Y[f"dpi_{h}"] = Y[f"pi_fut_{h}"] - pi12; Y[f"decel_{h}"] = (Y[f"dpi_{h}"] < 0).astype(float).where(Y[f"dpi_{h}"].notna())
-pi3c, pi6c = B1["pce_core_3m"], B1["pce_core_6m"]
-HIST = pd.DataFrame({"pi12": pi12, "pi12_lag12": pi12.shift(12), "pi3": pi3c, "pi6": pi6c, "d3_pi12": pi12 - pi12.shift(3), "accel": pi3c - pi3c.shift(3)})
-HF = [3, 6, 12, 24]   # forecast horizons reported in sections 3-5
-SETS = {"M1 history": list(HIST.columns), "M2 +global": list(HIST.columns) + ["G1", "G2"], "M3 +global+block": list(HIST.columns) + list(F.columns)}
-D = pd.concat([HIST, F, Y], axis=1).loc[F.index]; T = D.index[-1]
-results = []
-for h in HF:
-    for name, cols in SETS.items():
-        f = oos_forecast(D, f"pi_fut_{h}", cols, h); e = (D[f"pi_fut_{h}"] - f).dropna(); da = (np.sign(f - D["pi12"]) == np.sign(D[f"dpi_{h}"])).loc[e.index].mean()
-        results.append(dict(h=h, model=name, RMSFE=np.sqrt((e ** 2).mean()), dir_acc=da))
-RES_OOS = pd.DataFrame(results); RES_OOS["rel_RMSFE"] = RES_OOS["RMSFE"] / RES_OOS.groupby("h")["RMSFE"].transform("first"); RM = RES_OOS.set_index(["h", "model"])
-R.p(TEXT["p16_core_pce_is_the_target_the_de"])
-R.p("Forecasts are evaluated pseudo-out-of-sample with an expanding window, its change relative to today's 12m rate, and the deceleration indicator. Direct regressions with three nested information sets: M1 inflation history and momentum, M2 plus the global factors, M3 plus the block factors. "
-    f"Expanding-window pseudo-out-of-sample from {OOS_START[:4]} with full-sample factor loadings (a look-ahead in the factor construction).")
-R.table(RES_OOS.pivot(index="model", columns="h", values=["RMSFE", "rel_RMSFE", "dir_acc"]), "Out-of-sample RMSFE, RMSFE relative to M1, and directional accuracy for acceleration/deceleration, by horizon (months)")
-rows = {}
-for h in HF:
-    r = ols(D[f"pi_fut_{h}"], D[SETS["M3 +global+block"]], hac=h); rows[f"{h}m"] = pd.Series({k: f"{r.params[k]:+.2f} ({r.tvalues[k]:+.1f})" for k in F.columns}); rows[f"{h}m"]["R2 M3 / M1"] = f"{r.rsquared:.2f} / {ols(D[f'pi_fut_{h}'], D[SETS['M1 history']]).rsquared:.2f}"
-R.table(pd.DataFrame(rows), "In-sample factor coefficients (HAC t-statistics, lag = horizon) in the M3 regression")
+D = pd.concat([pd.DataFrame({"pi12": pi12, "pi3": B1["pce_core_3m"], "pi6": B1["pce_core_6m"]}), F, Y], axis=1).loc[F.index]
+T = D.index[-1]; HF = [3, 6, 12, 24]
+# pce_core_{h}m observed at t+h is exactly the annualized rate over the next h months at t, so the
+# iterated h-step forecast of that variable is the forecast of the target, with its own interval.
+R.h(3, "Forecasts")
+# Forecasts are built from the 3-month rate at non-overlapping quarters: pce_core_3m at t+3, t+6,
+# ... covers disjoint windows, so the average of the first k is the annualized rate over 3k months.
+# Reading the h-month rate straight off pce_core_{h}m instead would respect no such identity: the
+# model carries the overlapping aggregates as separate series, and their mechanical autocorrelation
+# is absorbed by idiosyncratic AR(1) terms rising to 0.97 at 24 months, which then drive the
+# forecast in place of the factors. Both constructions are evaluated below.
+STEP = 3; KS = [1, 2, 4, 8]; HR = [STEP * k for k in KS]
+IDX3 = VARS.index("pce_core_3m")
 
-R.h(2, "4. What the model says today")
-today = {}
-for h in HF:
-    cols = SETS["M3 +global+block"]; r = ols(D[f"pi_fut_{h}"], D[cols]); fc = r.params["const"] + (r.params[cols] * D.loc[T, cols]).sum(); rm = RM.loc[(h, "M3 +global+block"), "RMSFE"]
-    r1 = ols(D[f"pi_fut_{h}"], D[SETS["M1 history"]]); f1 = r1.params["const"] + (r1.params[SETS["M1 history"]] * D.loc[T, SETS["M1 history"]]).sum()
-    today[f"{h}m"] = {"current 12m core PCE": D.loc[T, "pi12"], "current h-month core PCE": B1[f"pce_core_{h}m"].loc[T], "forecast M3": fc, "forecast M1 history": f1, "forecast change vs 12m": fc - D.loc[T, "pi12"],
-                      "direction": "decelerating" if fc < D.loc[T, "pi12"] else "accelerating", "90% band": f"[{fc-1.645*rm:.1f}, {fc+1.645*rm:.1f}]"}
-TODAY = pd.DataFrame(today); R.table(TODAY, f"Forecast origin {T:%B %Y}; annualized percent; band from the out-of-sample RMSFE")
+def quarter_paths(fit):
+    """Forecast of pce_core_3m at t+3, t+6, ..., from the filtered state at every origin."""
+    fr = fit["res"].filter_results
+    Zd = np.asarray(fr.design)[:, :, 0]; A = np.asarray(fr.transition)[:, :, 0]
+    a = np.asarray(fit["res"].filtered_state)
+    mu = np.asarray(fit["mod"]._endog_mean).ravel(); sd = np.asarray(fit["mod"]._endog_std).ravel()
+    return pd.DataFrame({k: mu[IDX3] + sd[IDX3] * ((Zd[IDX3] @ np.linalg.matrix_power(A, STEP * k)) @ a)
+                         for k in range(1, max(KS) + 1)}, index=X.index)
 
-# =============================================================================== decompositions
-R.h(2, "5. Current-signal and news decompositions")
-GROUP = {**{c: "history" for c in HIST.columns}, "G1": "G1", "G2": "G2", "B_infl": "inflation", "B_dist": "distribution", "B_exp": "expectations", "B_dem": "demand", "B_fin": "financial"}
-dec = {}
-for h in HF:
-    cols = SETS["M3 +global+block"]; r = ols(D[f"pi_fut_{h}"], D[cols]); c = (r.params[cols] * (D.loc[T, cols] - D[cols].mean())).groupby(pd.Series(GROUP)).sum()
-    dec[f"{h}m"] = pd.concat([pd.Series({"sample mean of target": D[f"pi_fut_{h}"].mean()}), c, pd.Series({"forecast": D[f"pi_fut_{h}"].mean() + c.sum()})])
-dec = pd.DataFrame(dec).loc[["sample mean of target", "history", "G1", "G2", "inflation", "distribution", "expectations", "demand", "financial", "forecast"]]
-fig, ax = plt.subplots(figsize=(8, 3.4)); dec.iloc[1:-1].plot.bar(ax=ax, width=.75); ax.axhline(0, color="grey", lw=.6); ax.set_title(f"Contributions to the core PCE forecast, {T:%b %Y} (pp, deviation from sample mean)"); ax.legend(title="horizon", frameon=False); plt.xticks(rotation=0)
-R.h(3, "Current-signal decomposition")
-R.p(TEXT["p02_for_the_linear_m3_equation_eac"])
-R.fig(fig, "decomposition", "Current-signal decomposition of the core PCE forecast."); R.table(dec, "Contributions (pp)")
+def accum_paths(fit):
+    Q = quarter_paths(fit)
+    return {STEP * k: Q[list(range(1, k + 1))].mean(axis=1) for k in KS}
 
-# news decomposition
-X_full = pd.concat(BLOCKS, axis=1)[X.columns]; X_full = X_full[X_full.index >= START].dropna(how="all"); Z_full = (X_full - X.mean()) / X.std()
-Lam = pd.DataFrame(0.0, index=Z.columns, columns=F.columns); Lam[["G1", "G2"]] = LG.values
-for b in BLOCKS: Lam.loc[Lam.index.get_level_values(0) == b, f"B_{b}"] = LB[b].values
-Rdiag = (Zfill - pd.DataFrame(F.values @ Lam.values.T, index=Z.index, columns=Z.columns)).var().values; A = var.coefs[0]; Q = var.sigma_u.values; nF = F.shape[1]
-beta12 = ols(D["pi_fut_12"], D[list(F.columns)]); beta = beta12.params[list(F.columns)].values; alpha = beta12.params["const"]
-def kalman_news(Z_full):
-    L = Lam.values; T_, N = Z_full.shape; f, Pm = np.zeros(nF), np.eye(nF) * 10.0
-    Ff = np.full((T_, nF), np.nan); NEWS = np.full((T_, N), np.nan); CONTR = np.full((T_, N), np.nan); REV = np.full(T_, np.nan)
-    for t in range(T_):
-        fp, Pp = A @ f, A @ Pm @ A.T + Q; obs = ~np.isnan(Z_full.values[t]); f, Pm = fp, Pp
-        if obs.any():
-            Lt, z = L[obs], Z_full.values[t, obs]; nu = z - Lt @ fp; S = Lt @ Pp @ Lt.T + np.diag(Rdiag[obs]); K = Pp @ Lt.T @ np.linalg.inv(S)
-            f, Pm = fp + K @ nu, Pp - K @ Lt @ Pp; w = beta @ K; NEWS[t, obs] = nu; CONTR[t, obs] = w * nu; REV[t] = (w * nu).sum()
-        Ff[t] = f
-    idx = Z_full.index; return pd.DataFrame(Ff, idx, F.columns), pd.DataFrame(NEWS, idx, Z_full.columns), pd.DataFrame(CONTR, idx, Z_full.columns), pd.Series(REV, idx)
-F_filt, NEWS, CONTR, REV = kalman_news(Z_full); tau = Z_full.index[-1]
-grp = pd.Series([b for b, c in Z_full.columns], index=Z_full.columns); by_block = CONTR.T.groupby(grp).sum(min_count=1).T; recent = by_block.loc[by_block.index >= tau - pd.DateOffset(months=12)]
-fig, axes = plt.subplots(1, 2, figsize=(15, 3.8), gridspec_kw={"width_ratios": [1.3, 1]}); ax = axes[0]; bp, bn = np.zeros(len(recent)), np.zeros(len(recent)); x = np.arange(len(recent))
+def direct_paths(fit):
+    """The earlier construction, kept for comparison: the h-month rate read off its own series."""
+    fr = fit["res"].filter_results
+    Zd = np.asarray(fr.design)[:, :, 0]; A = np.asarray(fr.transition)[:, :, 0]
+    a = np.asarray(fit["res"].filtered_state)
+    mu = np.asarray(fit["mod"]._endog_mean).ravel(); sd = np.asarray(fit["mod"]._endog_std).ravel()
+    out = {}
+    for h in HR:
+        i = VARS.index(f"pce_core_{h}m")
+        out[h] = pd.Series(mu[i] + sd[i] * ((Zd[i] @ np.linalg.matrix_power(A, h)) @ a), index=X.index)
+    return out
+
+# The reported object is the 12-month rate at each future date, the measure most people know.
+# For h < 12 it is the average of the realized (12-h)-month rate ending today and the forecast
+# h-month forward rate; at 12 months it is the forward rate; at 24 months it is forward months
+# 13-24. The same map applies to every model, so the comparison across them is like for like.
+def twelve_at(fwd):
+    r = lambda k: (1200 / k * (logp - logp.shift(k))).reindex(X.index)
+    return {3: (9 * r(9) + 3 * fwd[3]) / 12, 6: (6 * r(6) + 6 * fwd[6]) / 12, 12: fwd[12], 24: 2 * fwd[24] - fwd[12]}
+REALIZED_MONTHS = {3: 9, 6: 6, 12: 0, 24: 0}
+QF = quarter_paths(FULL); TW = twelve_at(accum_paths(FULL))
+FC = pd.DataFrame({f"{h}m": {"forecast": v.loc[T], "change vs current 12m": v.loc[T] - D.loc[T, "pi12"]} for h, v in TW.items()}).astype(object)
+FC.loc["realized months in window"] = [REALIZED_MONTHS[h] for h in HR]
+R.p(f"Core PCE is running at {D.loc[T, 'pi12']:.1f} percent over 12 months and {D.loc[T, 'pi3']:.1f} annualized over the latest 3 months. The model's forecast of the next eight quarters, annualized, is "
+    f"{', '.join(f'{QF.loc[T, k]:.2f}' for k in range(1, max(KS) + 1))}. Combined with the months already realized, the 12-month rate is projected at "
+    f"{' / '.join(f'{FC.loc['forecast', f'{h}m']:.1f}' for h in HR)} percent {'/'.join(str(h) for h in HR)} months from now. Within a year the window still contains realized months, so the near-term "
+    f"path is largely arithmetic: the quarters ending January and April 2026 ran at {B1['pce_core_3m'].loc[T - pd.DateOffset(months=6)]:.1f} and {B1['pce_core_3m'].loc[T - pd.DateOffset(months=3)]:.1f} annualized, and the 12-month rate falls as they roll out.")
+R.table(FC, f"Projected 12-month core PCE inflation at each horizon, origin {T:%B %Y} (percent)")
+# The history line is the 12-month rate, so the forecast is shown in the same units: the implied
+# 12-month rate at each future quarter, which is the average of the four quarters ending there.
+# Out to 12 months that window still contains realized quarters; beyond, it is entirely forecast.
+qhist = [B1["pce_core_3m"].loc[T - pd.DateOffset(months=3 * j)] for j in (3, 2, 1, 0)]
+def implied_path(qf):
+    """12-month rate at each future quarter from eight quarterly forecasts plus the realized quarters."""
+    qseq = qhist + list(qf)
+    impl = pd.Series({T + pd.DateOffset(months=3 * mth): float(np.mean(qseq[mth:mth + 4])) for mth in range(1, max(KS) + 1)})
+    return pd.concat([pd.Series({T: D.loc[T, "pi12"]}), impl])
+fig, ax = plt.subplots(figsize=(9, 3.6))
+hist = pi12.loc["2015":]; ax.plot(hist.index, hist, color="k", lw=1.2, label="core PCE, 12m (realized)")
+pth = implied_path([QF.loc[T, k] for k in range(1, max(KS) + 1)]); ax.plot(pth.index, pth.values, "-", color="tab:red", lw=1.4, label="implied 12m rate, forecast")
+ax.axvline(T, color="grey", lw=.6, ls=":")
+ax.axhline(2, color="grey", ls="--", lw=.7); ax.legend(frameon=False, ncol=2)
+ax.set_title("Core PCE inflation, 12-month rate: history and implied forecast path (percent)")
+R.fig(fig, "forecast", "Implied 12-month core PCE inflation every three months, to 24 months ahead. Windows ending within a year of the origin still contain realized quarters.")
+
+R.h(3, "Sources of news in the current projection")
+TARGET = T + pd.DateOffset(months=12)
+Xflat = X.copy(); Xflat.columns = VARS
+vintages = [T - pd.DateOffset(months=k) for k in range(12, -1, -1)]
+def _stage_news():
+    applied = {v: dfm_res.apply(Xflat.loc[:v]) for v in vintages}
+    news_rows = {}
+    for prev_v, now_v in zip(vintages[:-1], vintages[1:]):
+        nw = applied[now_v].news(applied[prev_v], impact_date=TARGET, impacted_variable="pce_core_12m", comparison_type="previous")
+        d_ = nw.details_by_impact.reset_index(); d_["block"] = d_["updated variable"].map(BLK)
+        news_rows[now_v] = d_.groupby("block")["impact"].sum()
+    NEWS = pd.DataFrame(news_rows).T.reindex(columns=list(BLOCKS)).fillna(0.0)
+    return NEWS
+NEWS = stage("news", _stage_news, key=(stamp, "full", len(vintages), str(TARGET.date())))
+fig, ax = plt.subplots(figsize=(9, 3.8)); xpos = np.arange(len(NEWS)); bp, bn = np.zeros(len(NEWS)), np.zeros(len(NEWS))
 for b in BLOCKS:
-    v = recent[b].fillna(0).values; pos, neg = np.clip(v, 0, None), np.clip(v, None, 0); ax.bar(x, pos, bottom=bp, label=b); ax.bar(x, neg, bottom=bn, color=ax.patches[-1].get_facecolor()); bp += pos; bn += neg
-ax.plot(x, REV.reindex(recent.index).values, "k.", label="total"); ax.axhline(0, color="grey", lw=.6); ax.set_xticks(x); ax.set_xticklabels([d.strftime("%b%y") for d in recent.index], fontsize=8); ax.legend(ncol=6, fontsize=8, frameon=False)
-ax.set_title("Monthly revision of the 12m-ahead core PCE forecast attributed to news, by block (pp)")
-ax = axes[1]; c_now = CONTR.iloc[-1].dropna(); c_now.index = [f"{b}:{v}" for b, v in c_now.index]; tp = c_now.reindex(c_now.abs().sort_values().index[-10:])
-ax.barh(tp.index, tp.values, color=np.where(tp > 0, "tab:red", "tab:blue")); ax.axvline(0, color="grey", lw=.6); ax.set_title(f"Largest news contributions, {tau:%b %Y} (pp)"); ax.tick_params(axis="y", labelsize=8); plt.tight_layout()
-R.h(3, "News decomposition")
-R.p(f"The factor system in state-space form (loadings from the PCA, VAR(1) dynamics, diagonal idiosyncratic variances), filtered month by month through the ragged edge ({tau:%b %Y}). "
-    f"News in each released series is its surprise relative to the previous month's information set; the revision of the factor-only 12m forecast is attributed through the Kalman gain. Latest-vintage values, so data revisions are ignored and publication lags enter only at the ragged edge. "
-    f"Filtered factors track the PCA factors (correlations {', '.join(f'{c} {F_filt[c].corr(F[c]):.2f}' for c in F.columns)}). "
-    f"{tau:%b %Y} revision {REV.iloc[-1]:+.2f} pp ({', '.join(f'{b} {v:+.2f}' for b, v in by_block.iloc[-1].dropna().items())}); cumulative over 12 months {REV.reindex(recent.index).sum():+.2f} pp; largest monthly revision {REV.reindex(recent.index).abs().idxmax():%b %Y} ({REV.reindex(recent.index).abs().max():.2f}).")
-R.fig(fig, "news", "News decomposition of forecast revisions.")
+    v = NEWS[b].values; pos, neg = np.clip(v, 0, None), np.clip(v, None, 0)
+    ax.bar(xpos, pos, bottom=bp, label=b); ax.bar(xpos, neg, bottom=bn, color=ax.patches[-1].get_facecolor()); bp += pos; bn += neg
+ax.plot(xpos, NEWS.sum(axis=1).values, "k.", label="total")
+ax.axhline(0, color="grey", lw=.6); ax.set_xticks(xpos); ax.set_xticklabels([d.strftime("%b%y") for d in NEWS.index], fontsize=8)
+ax.legend(ncol=6, fontsize=8, frameon=False); ax.set_title(f"News contributions to the {TARGET:%b %Y} core PCE forecast, by block (pp)")
+R.fig(fig, "news", "Monthly news contributions to the current 12-month-ahead forecast, by block.")
+cum = NEWS.sum().sort_values()
+R.p(f"Holding the target date fixed at {TARGET:%B %Y}, each month's data releases revise the 12-month forecast. Over the last {len(NEWS)} months the cumulative revision is "
+    f"{NEWS.sum().sum():+.2f} pp: {', '.join(f'{b} {v:+.2f}' for b, v in cum.items())}. News is measured against the previous month's information set with the parameters held fixed.")
 
+
+R.h(3, "Information sets")
+AR_ORDER = min(range(1, 13), key=lambda p_: AutoReg(B1["pce_core_1m"].loc[START:].dropna().rename("y"), lags=p_).fit().aic)
+def ar_month_paths():
+    """Monthly forecasts 1..24 ahead from every origin, AR(p) on the monthly rate."""
+    y = B1["pce_core_1m"].loc[START:].dropna().rename("y"); fit = AutoReg(y, lags=AR_ORDER).fit()   # same 1985+ sample as the panel
+    c, phi = fit.params.iloc[0], fit.params.iloc[1:].values; rows = {}
+    for t_ in range(AR_ORDER, len(y)):
+        hist_ = list(y.iloc[t_ - AR_ORDER + 1:t_ + 1].values[::-1]); path = []
+        for _ in range(max(HR)):
+            nxt = c + float(np.dot(phi, hist_[:AR_ORDER])); path.append(nxt); hist_ = [nxt] + hist_
+        rows[y.index[t_]] = path
+    return pd.DataFrame.from_dict(rows, orient="index", columns=range(1, max(HR) + 1)).reindex(X.index)
+ARM = ar_month_paths()
+AR = {h: ARM[list(range(1, h + 1))].mean(axis=1) for h in HR}
+ARQ = pd.DataFrame({k: ARM[[3 * k - 2, 3 * k - 1, 3 * k]].mean(axis=1) for k in range(1, max(KS) + 1)})   # quarterly, like quarter_paths
+PATHS = {"M1 time series": twelve_at(AR), "M2 global factors": twelve_at(accum_paths(FITS["global"])), "M3 global + block": twelve_at(accum_paths(FULL))}
+DPATHS = {"M1 time series": twelve_at(AR), "M2 global factors": twelve_at(direct_paths(FITS["global"])), "M3 global + block": twelve_at(direct_paths(FULL))}
+def rmse_table(paths):
+    rows = []
+    for h in HR:
+        real = X[("infl", "pce_core_12m")].shift(-h)          # the 12-month rate observed h months later
+        errs = {k: (real - v[h]).loc[OOS_START:].dropna() for k, v in paths.items()}
+        common = None
+        for e in errs.values(): common = e.index if common is None else common.intersection(e.index)
+        for k, e in errs.items(): rows.append(dict(h=f"{h}m", model=k, RMSE=np.sqrt((e.loc[common] ** 2).mean()), n=len(common)))
+    t = pd.DataFrame(rows)
+    return t.pivot(index="model", columns="h", values="RMSE").loc[list(paths)][[f"{h}m" for h in HR]], int(t["n"].iloc[0])
+OOS, N_OOS = rmse_table(PATHS); OOS_D, _ = rmse_table(DPATHS)
+REL = OOS / OOS.loc["M1 time series"]
+NOW = pd.DataFrame({f"{h}m": {k: v[h].loc[T] for k, v in PATHS.items()} for h in HR}).loc[list(PATHS)]
+PROB = pd.DataFrame({f"{h}m": {"P(lower) model": stats.norm.cdf((D.loc[T, "pi12"] - FC.loc["forecast", f"{h}m"]) / OOS.loc["M3 global + block", f"{h}m"]),
+                               "unconditional": D[f"decel_{h}"].mean() if f"decel_{h}" in D else np.nan} for h in HR})
+R.p(f"How much of the projection depends on the breadth of the panel? Three nested information sets, all iterated: M1 an AR({AR_ORDER}) on monthly core PCE chosen by AIC; M2 the two global factors; M3 the global and block factors. M2 and M3 are separately "
+    f"estimated dynamic factor models, since the parameters of a restricted set cannot be read off the full fit. Forecasts are recursive from {OOS_START[:4]}: at each origin the filtered state uses "
+    f"data through that month only, but the parameters are estimated once on the full sample, which is a look-ahead that favours the factor models. Latest-vintage data throughout, so revisions are ignored.")
+R.table(NOW, f"Projected 12-month core PCE inflation by information set, origin {T:%B %Y} (percent)")
+R.table(pd.concat({"RMSE": OOS, "relative to M1": REL}, axis=1), f"Pseudo-out-of-sample RMSE of the 12-month rate h months ahead, {OOS_START[:4]} onward, {N_OOS} origins at 3m; forecasts accumulated from the 3-month rate. Within a year the window contains realized months, so errors are mechanically smaller at short horizons")
+R.table(OOS_D, "The same evaluation reading each h-month rate off its own series instead of accumulating; the gap is the cost of ignoring the accounting identity")
+
+# second forecast figure: the same implied 12-month path under each information set
+fig, ax = plt.subplots(figsize=(9, 3.6))
+hist = pi12.loc["2015":]; ax.plot(hist.index, hist, color="k", lw=1.2, label="core PCE, 12m (realized)")
+for lab, qf, sty in [("M3 global + block", [QF.loc[T, k] for k in range(1, max(KS) + 1)], dict(color="tab:red", lw=1.6)),
+                     ("M2 global factors", [quarter_paths(FITS["global"]).loc[T, k] for k in range(1, max(KS) + 1)], dict(color="tab:orange", lw=1.2, ls="--")),
+                     ("M1 time series", [ARQ.loc[T, k] for k in range(1, max(KS) + 1)], dict(color="tab:blue", lw=1.2, ls=":"))]:
+    pth = implied_path(qf); ax.plot(pth.index, pth.values, label=lab, **sty)
+ax.axvline(T, color="grey", lw=.6, ls=":"); ax.axhline(2, color="grey", ls="--", lw=.7); ax.legend(frameon=False, ncol=4, fontsize=8)
+ax.set_title("Core PCE inflation, 12-month rate: implied forecast path by information set (percent)")
+R.fig(fig, "forecast_sets", "Implied 12-month core PCE inflation under each information set. Paths coincide over the first quarter, where nine of twelve months are realized, and diverge as the forecast share of the window grows.")
 # =============================================================================== disagreement
-R.h(2, "6. Agreement and disagreement")
+R.h(2, "3. Agreement and disagreement")
 Fz7 = Fz.dropna(); D_sd = Fz7.std(axis=1); C1, lamb, exC, _ = pca(Fz7, 1); RESID = Fz7 - pd.DataFrame(np.outer(C1["PC1"], lamb["PC1"]), index=Fz7.index, columns=Fz7.columns); D_res = np.sqrt((RESID ** 2).mean(axis=1))
 MEAS = ["cpi", "cpi_core", "pce", "pce_core", "cpi_median", "cpi_trim", "pce_trim", "cpi_sticky", "cpi_core_sticky", "cpi_flex", "cpi_core_flex"]
 meas12 = B1[[f"{t}_12m" for t in MEAS]]; meas3 = B1[[f"{t}_3m" for t in MEAS]]; D_infl12 = meas12.std(axis=1); D_infl3 = meas3.std(axis=1)
@@ -500,7 +623,7 @@ ax.set_xlabel("share of categories above 3% (3m ann.)"); ax.set_ylabel("cross-se
 R.fig(fig, "disagreement_inflation", "Disagreement among inflation measures, and breadth versus dispersion.")
 
 # =============================================================================== analogs
-R.h(2, "7. Historical analogs")
+R.h(2, "4. Historical analogs")
 def analogs(V, k=15, exclude_months=24, min_gap=6):
     v0 = V.iloc[-1]; hist = V[V.index <= V.index[-1] - pd.DateOffset(months=exclude_months)].dropna(); dist = np.sqrt(((hist - v0) ** 2).sum(axis=1)).sort_values(); picked = []
     for t in dist.index:
@@ -516,7 +639,7 @@ R.p(f"Nearest neighbors of today's standardized factor vector (Euclidean distanc
 R.table(A1, f"Analogs on the factor vector, origin {T:%b %Y}")
 
 # =============================================================================== supply vs demand
-R.h(2, "8. Supply-like versus demand-like episodes and disagreement")
+R.h(2, "5. Supply-like versus demand-like episodes and disagreement")
 hi = lambda s_: s_ > s_.median(); BPCd = pd.DataFrame(BPC); infl_pc, dem_pc = pi12.reindex(BPCd.index), BPCd["dem"]
 regime = pd.Series(np.select([hi(infl_pc) & hi(dem_pc), hi(infl_pc) & ~hi(dem_pc), ~hi(infl_pc) & hi(dem_pc)], ["demand-like (infl high, demand high)", "adverse-supply-like (infl high, demand weak)", "favorable-supply-like (infl low, demand strong)"],
                              "weak-demand (infl low, demand weak)"), index=BPCd.index).reindex(D_res.index)
@@ -535,25 +658,23 @@ R.table(reg_tab, "Disagreement by regime"); R.table(pd.DataFrame(corr_rows).T, "
 R.table(PRED, "Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)")
 
 # =============================================================================== additional evidence
-R.h(2, "9. Additional evidence")
+R.h(2, "6. Additional evidence")
 R.p(TEXT["p05_four_further_pieces_of_evidenc"])
-prob = {}
-for h in HF:
-    cols = SETS["M3 +global+block"]; rm = RM.loc[(h, "M3 +global+block"), "RMSFE"]; fc = today[f"{h}m"]["forecast M3"]
-    lg = sm.Logit(D[f"decel_{h}"], sm.add_constant(D[cols]), missing="drop").fit(disp=0)
-    prob[f"{h}m"] = {"P(lower) normal approx.": stats.norm.cdf((D.loc[T, "pi12"] - fc) / rm), "P(lower) logit": float(lg.predict(sm.add_constant(D[cols]).loc[[T]]).iloc[0]), "unconditional": D[f"decel_{h}"].mean()}
-PROB = pd.DataFrame(prob); n_dec = int((meas3.loc[T].values < meas12.loc[T].values).sum())
+n_dec = int((meas3.loc[T].values < meas12.loc[T].values).sum())   # PROB is built in section 2, from the accumulated forecast and its out-of-sample RMSE
 CANDS = {"core PCE 3m": B1["pce_core_3m"], "core PCE 6m": B1["pce_core_6m"], "core PCE 3m-12m": B1["pce_core_3m"] - B1["pce_core_12m"], "core CPI 12m": B1["cpi_core_12m"], "median CPI 12m": B1["cpi_median_12m"], "median CPI 3m": B1["cpi_median_3m"],
          "trimmed PCE 12m": B1["pce_trim_12m"], "trimmed CPI 12m": B1["cpi_trim_12m"], "sticky CPI 12m": B1["cpi_sticky_12m"], "flexible CPI 12m": B1["cpi_flex_12m"], "breadth >3% (3m)": B2["share_gt3_3m"],
          "breadth >3% (12m)": B2["share_gt3_12m"], "xs dispersion (3m)": B2["xs_sd_3m"], "xs median (3m)": B2["xs_median_3m"], "SPF dispersion": B3["spf_cpi_4q_sd"], "Michigan 1y": B3["mich_1y"]}
-DC = pd.concat([D[["pi12", "pi3"] + [f"pi_fut_{h}" for h in H] + [f"dpi_{h}" for h in H]], pd.DataFrame(CANDS)], axis=1).loc[D.index]; race = []
-for name in CANDS:
-    row = {"measure": name, "corr with core PCE 12m": DC[name].corr(DC["pi12"])}
-    for h in [3, 6, 12]:
-        base = oos_forecast(DC, f"pi_fut_{h}", ["pi12"], h); alt = oos_forecast(DC, f"pi_fut_{h}", ["pi12", name], h); e0 = (DC[f"pi_fut_{h}"] - base).dropna(); e1 = (DC[f"pi_fut_{h}"] - alt).dropna(); idx = e0.index.intersection(e1.index)
-        row[f"rel RMSFE {h}m"] = np.sqrt((e1[idx] ** 2).mean() / (e0[idx] ** 2).mean()); row[f"t {h}m"] = ols(DC[f"dpi_{h}"], DC[["pi12", "pi3", name]], hac=h).tvalues[name]
-    race.append(row)
-RACE = pd.DataFrame(race).set_index("measure")
+def _stage_race():
+    DC = pd.concat([D[["pi12", "pi3"] + [f"pi_fut_{h}" for h in H] + [f"dpi_{h}" for h in H]], pd.DataFrame(CANDS)], axis=1).loc[D.index]; race = []
+    for name in CANDS:
+        row = {"measure": name, "corr with core PCE 12m": DC[name].corr(DC["pi12"])}
+        for h in [3, 6, 12]:
+            base = oos_forecast(DC, f"pi_fut_{h}", ["pi12"], h); alt = oos_forecast(DC, f"pi_fut_{h}", ["pi12", name], h); e0 = (DC[f"pi_fut_{h}"] - base).dropna(); e1 = (DC[f"pi_fut_{h}"] - alt).dropna(); idx = e0.index.intersection(e1.index)
+            row[f"rel RMSFE {h}m"] = np.sqrt((e1[idx] ** 2).mean() / (e0[idx] ** 2).mean()); row[f"t {h}m"] = ols(DC[f"dpi_{h}"], DC[["pi12", "pi3", name]], hac=h).tvalues[name]
+        race.append(row)
+    RACE = pd.DataFrame(race).set_index("measure")
+    return RACE
+RACE = stage("race", _stage_race, key=(stamp, OOS_START, tuple(CANDS)))
 RACE["type"] = np.where((RACE[[f"rel RMSFE {h}m" for h in (3, 6, 12)]] < 0.98).sum(axis=1) >= 2, "forward-looking", np.where(RACE["corr with core PCE 12m"].abs() > 0.8, "contemporaneous", "no gain"))
 b12 = B2["share_gt3_12m"].reindex(D.index); hiB = b12 > b12.quantile(.75); loB = b12 < b12.quantile(.25)
 cond = pd.DataFrame({k: [msk.sum(), D.loc[msk, "pi12"].mean(), D.loc[msk, "pi_fut_12"].mean(), (D.loc[msk, "pi_fut_12"] > 2.5).mean(), D.loc[msk, "dpi_12"].mean(), (D.loc[msk, "dpi_12"] < 0).mean()]
@@ -564,7 +685,9 @@ for t in gap[gap < -1.0].index:
     if not events or (t - events[-1]).days > 180: events.append(t)
 EV = pd.DataFrame([{"date": t.strftime("%Y-%m"), "core 12m": pi12.loc[t], "gap": gap.loc[t], "12m change ahead": Y["dpi_12"].get(t, np.nan), "turning point": Y["dpi_12"].get(t, np.nan) <= -0.5,
                     "reaccelerated within 6m": bool((B1["pce_core_3m"].loc[t:t + pd.DateOffset(months=6)] > pi12.loc[t]).any())} for t in events]).set_index("date"); ev_hist = EV.dropna(subset=["12m change ahead"])
-blk_pred = {f"{h}m": {c: f"{r.params[c]:+.2f} ({r.tvalues[c]:+.1f})" for c in F.columns} for h, r in [(h, ols(D[f"pi_fut_{h}"], D[SETS["M3 +global+block"]], hac=h)) for h in (3, 6, 12)]}
+# Under the iterated forecast a block acts through the factor VAR, not through a coefficient on
+# inflation, so its contribution is measured as the M3-minus-M2 difference in the projection.
+BLOCK_GAIN = pd.Series({f"{h}m": NOW.loc["M3 global + block", f"{h}m"] - NOW.loc["M2 global factors", f"{h}m"] for h in HF})
 drivers = {b: (LB[b] * Z[b].iloc[-1].fillna(0)).sort_values(key=abs, ascending=False).head(5) for b in BLOCKS}
 fin_vars = ["fedfunds", "real_10y_clev", "dgs10", "nfci", "vix", "baa_spread", "ebp", "term_premium_10y", "equity_12m_ret", "usd_12m", "mortgage30", "sloos_ci"]; tight_if_high = {"fedfunds", "real_10y_clev", "dgs10", "nfci", "vix", "baa_spread", "ebp", "mortgage30", "sloos_ci", "usd_12m", "term_premium_10y"}
 fin_now = pd.DataFrame({"latest": [B5[c].dropna().iloc[-1] for c in fin_vars], "percentile": [pct_rank(B5[c]) for c in fin_vars]}, index=fin_vars); fin_now["side"] = ["tight" if ((c in tight_if_high) == (p > 50)) else "loose" for c, p in zip(fin_vars, fin_now["percentile"])]
@@ -575,12 +698,17 @@ R.table(PROB, "Probability that core PCE inflation is lower over the next h mont
 R.table(cond, "Conditional history by breadth (share of categories above 3% at 12m)"); R.table(EV, "Spells with core PCE 3m at least 1 pp below 12m")
 
 # =============================================================================== answers
-R.h(2, "10. Answers")
-z_now = Fz.iloc[-1]; pctF = {c: pct_rank(Fz[c]) for c in F.columns}; h12 = today["12m"]; lat12 = meas12.loc[T]; common12 = float(lat12.median())
+R.h(2, "7. Answers")
+z_now = Fz.iloc[-1]; pctF = {c: pct_rank(Fz[c]) for c in F.columns}; h12 = {"forecast": FC.loc["forecast", "12m"], "change": FC.loc["change vs current 12m", "12m"], "current": D.loc[T, "pi12"],
+       "direction": "decelerating" if FC.loc["change vs current 12m", "12m"] < 0 else "accelerating"}; lat12 = meas12.loc[T]; common12 = float(lat12.median())
 above = [vname(c) for c in lat12.index[lat12 > common12 + 0.25]]; below = [vname(c) for c in lat12.index[lat12 < common12 - 0.25]]
-sh = lambda k, h: B2[f"share_gt{k}_{h}m"].dropna().iloc[-1]; b3 = B2["share_gt3_3m"].dropna(); b12s = B2["share_gt3_12m"].dropna(); d12 = dec["12m"].iloc[1:-1]
+sh = lambda k, h: B2[f"share_gt{k}_{h}m"].dropna().iloc[-1]; b3 = B2["share_gt3_3m"].dropna(); b12s = B2["share_gt3_12m"].dropna(); news_cum = NEWS.sum().sort_values()
 rb, rb12, rmed, rtr = RACE.loc["breadth >3% (3m)"], RACE.loc["breadth >3% (12m)"], RACE.loc["median CPI 12m"], RACE.loc["trimmed PCE 12m"]; best = {h: RACE[f"rel RMSFE {h}m"].idxmin() for h in (3, 6, 12)}
-p12 = PROB.loc["P(lower) normal approx.", "12m"]; rt = reg_tab["D_res mean"]; loose_share = (fin_now["side"] == "loose").mean(); pos_part = ", ".join(f"{k} {v:+.2f}" for k, v in d12[d12 > 0.01].items()) or "none"; neg_part = ", ".join(f"{k} {v:+.2f}" for k, v in d12[d12 < -0.01].items()) or "none"
+p12 = PROB.loc["P(lower) model", "12m"]; rt = reg_tab["D_res mean"]; loose_share = (fin_now["side"] == "loose").mean()
+pos_part = ", ".join(f"{k} {v:+.2f}" for k, v in news_cum[news_cum > 0.005].items()) or "none"; neg_part = ", ".join(f"{k} {v:+.2f}" for k, v in news_cum[news_cum < -0.005].items()) or "none"
+fc_str = " / ".join(f"{FC.loc['forecast', f'{h}m']:.1f}" for h in HR)          # "2.5 / 2.7 / 2.6 / 2.7"
+pl_str = " / ".join(f"{PROB.loc['P(lower) model', f'{h}m']:.0%}" for h in HR)
+hs_str = "/".join(str(h) for h in HR)
 def qa(title, lines): R.h(3, title); R.bullets(lines)
 qa("1. Best estimate of underlying inflation today", [
    f"Core PCE {B1['pce_core_3m'].loc[T]:.1f} / {B1['pce_core_6m'].loc[T]:.1f} / {B1['pce_core_12m'].loc[T]:.1f} (3m/6m/12m); median CPI {B1['cpi_median_12m'].loc[T]:.1f}, trimmed PCE {B1['pce_trim_12m'].loc[T]:.1f}, sticky {B1['cpi_sticky_12m'].loc[T]:.1f}, flexible {B1['cpi_flex_12m'].loc[T]:.1f} (12m).",
@@ -588,8 +716,8 @@ qa("1. Best estimate of underlying inflation today", [
    f"Disagreement among measures at the {ordinal(pct_rank(D_infl12))} percentile (12m) and {ordinal(pct_rank(D_infl3))} (3m): {'unusually high' if pct_rank(D_infl12) > 80 else 'unusually low' if pct_rank(D_infl12) < 20 else 'not unusual'}."])
 qa("2. Accelerating or decelerating", [
    f"{n_dec} of {len(MEAS)} measures have 3m below 12m; core PCE 3m-12m gap {(B1['pce_core_3m'] - B1['pce_core_12m']).loc[T]:+.1f} pp, 6m-12m {(B1['pce_core_6m'] - B1['pce_core_12m']).loc[T]:+.1f}.",
-   f"Factor model: {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} over 3/6/12m against a 12m rate of {h12['current 12m core PCE']:.1f}: {h12['direction']} ({h12['forecast change vs 12m']:+.2f} pp at 12m).",
-   f"P(lower over 3/6/12m): normal approximation {PROB.loc['P(lower) normal approx.', '3m']:.0%} / {PROB.loc['P(lower) normal approx.', '6m']:.0%} / {p12:.0%}; logit {PROB.loc['P(lower) logit', '3m']:.0%} / {PROB.loc['P(lower) logit', '6m']:.0%} / {PROB.loc['P(lower) logit', '12m']:.0%} (unconditional about {PROB.loc['unconditional', '12m']:.0%})."])
+   f"Iterated DFM forecast of the 12-month rate: {fc_str} at {hs_str} months ahead, against {h12['current']:.1f} today: {h12['direction']} ({h12['change']:+.2f} pp at 12m).",
+   f"P(12-month rate below today's): {pl_str} at {hs_str} months ahead (unconditional about {PROB.loc['unconditional', '12m']:.0%})."])
 qa("3. Breadth", [
    f"Share of categories above 2/3/4/5%: {100*sh(2,3):.0f} / {100*sh(3,3):.0f} / {100*sh(4,3):.0f} / {100*sh(5,3):.0f}% at 3m; {100*sh(2,12):.0f} / {100*sh(3,12):.0f} / {100*sh(4,12):.0f} / {100*sh(5,12):.0f}% at 12m.",
    f"Breadth (above 3%) is {'falling' if b3.iloc[-1] < b3.iloc[-4] else 'rising'} over three months at 3m ({100*(b3.iloc[-1]-b3.iloc[-4]):+.0f} pp) and {'falling' if b12s.iloc[-1] < b12s.iloc[-13] else 'rising'} over a year at 12m ({100*(b12s.iloc[-1]-b12s.iloc[-13]):+.0f} pp).",
@@ -598,7 +726,7 @@ qa("3. Breadth", [
 qa("4. Does breadth predict future inflation", [
    f"High-breadth months (top quartile): core PCE averaged {cond.loc['core PCE next 12m', 'high breadth (top quartile)']:.1f}% over the next 12m and stayed above 2.5% in {cond.loc['P(next 12m > 2.5%)', 'high breadth (top quartile)']:.0%} of cases, against {cond.loc['core PCE next 12m', 'low breadth (bottom quartile)']:.1f}% and {cond.loc['P(next 12m > 2.5%)', 'low breadth (bottom quartile)']:.0%} for low breadth. Inflation stayed elevated, but it was already high.",
    f"Given core PCE 12m and 3m, breadth (3m) has HAC t = {rb['t 3m']:+.1f} / {rb['t 6m']:+.1f} / {rb['t 12m']:+.1f} for the 3/6/12m change and relative RMSFE {rb['rel RMSFE 3m']:.2f} / {rb['rel RMSFE 6m']:.2f} / {rb['rel RMSFE 12m']:.2f}: little incremental content. Breadth at 12m: t {rb12['t 12m']:+.1f}, rel RMSFE {rb12['rel RMSFE 12m']:.2f}.",
-   f"Against median CPI (rel RMSFE 12m {rmed['rel RMSFE 12m']:.2f}) and trimmed PCE ({rtr['rel RMSFE 12m']:.2f}), breadth is {'more' if rb['rel RMSFE 12m'] < min(rmed['rel RMSFE 12m'], rtr['rel RMSFE 12m']) else 'not more'} useful. In the factor regression the distribution block is the one block with a significant coefficient ({blk_pred['12m']['B_dist']} at 12m)."])
+   f"Against median CPI (rel RMSFE 12m {rmed['rel RMSFE 12m']:.2f}) and trimmed PCE ({rtr['rel RMSFE 12m']:.2f}), breadth is {'more' if rb['rel RMSFE 12m'] < min(rmed['rel RMSFE 12m'], rtr['rel RMSFE 12m']) else 'not more'} useful. Adding the block factors to the global-factor model moves the 12m projection by {BLOCK_GAIN['12m']:+.2f} pp."])
 qa("5. Most useful current statistics", [
    f"Best single addition to core PCE 12m by horizon: 3m {best[3]} ({RACE.loc[best[3], 'rel RMSFE 3m']:.2f}); 6m {best[6]} ({RACE.loc[best[6], 'rel RMSFE 6m']:.2f}); 12m {best[12]} ({RACE.loc[best[12], 'rel RMSFE 12m']:.2f}). Gains are small everywhere.",
    f"Forward-looking (beats core PCE 12m alone at two or more horizons): {', '.join(RACE.index[RACE['type'] == 'forward-looking']) or 'none'}. Contemporaneous summaries (|corr| > 0.8, no out-of-sample gain): {', '.join(RACE.index[RACE['type'] == 'contemporaneous']) or 'none'}."])
@@ -608,17 +736,18 @@ qa("6. Recent favorable readings: signal or noise", [
 qa("7. Are financial conditions restrictive", [
    f"Financial factor (+ = looser) {z_now['B_fin']:+.2f} z, {ordinal(pctF['B_fin'])} percentile: {'unusually loose' if pctF['B_fin'] > 85 else 'on the loose side of history' if pctF['B_fin'] > 65 else 'unusually tight' if pctF['B_fin'] < 15 else 'on the tight side of history' if pctF['B_fin'] < 35 else 'near its historical middle'}.",
    f"{loose_share:.0%} of {len(fin_vars)} indicators sit on the loose side of their median: loose = {', '.join(fin_now.index[fin_now['side'] == 'loose'])}; tight = {', '.join(fin_now.index[fin_now['side'] == 'tight'])}.",
-   f"Predictive content given inflation history: {blk_pred['3m']['B_fin']} / {blk_pred['6m']['B_fin']} / {blk_pred['12m']['B_fin']} at 3/6/12m (coefficient, HAC t); contribution to today's 12m forecast {dec.loc['financial', '12m']:+.2f} pp."])
+   f"Financial conditions reach inflation only through the factor VAR; the block factors together move the 12m projection by {BLOCK_GAIN['12m']:+.2f} pp relative to the global-only model."])
 qa("8. Is demand pressure still inflationary", [
-   f"Demand factor {z_now['B_dem']:+.2f} z ({ordinal(pctF['B_dem'])} percentile); G2 {z_now['G2']:+.2f}. Predictive content given history: {blk_pred['3m']['B_dem']} / {blk_pred['6m']['B_dem']} / {blk_pred['12m']['B_dem']}; contribution to the 12m forecast {dec.loc['demand', '12m']:+.2f} pp.",
+   f"Demand factor {z_now['B_dem']:+.2f} z ({ordinal(pctF['B_dem'])} percentile); G2 {z_now['G2']:+.2f}. the block factors together move the 12m projection by {BLOCK_GAIN['12m']:+.2f} pp relative to the global-only model.",
    f"Drivers today (loading x z): {', '.join(f'{vname(k)} {v:+.2f}' for k, v in drivers['dem'].items())}. Unemployment {dem_now.loc['unrate', 'latest']:.1f} ({ordinal(dem_now.loc['unrate', 'percentile'])} pct), V/U {dem_now.loc['vu_ratio', 'latest']:.2f}, wages {dem_now.loc['ahe_12m', 'latest']:.1f}%, real PCE 6m {dem_now.loc['real_pce_6m', 'latest']:.1f}%."])
 qa("9. Are expectations a problem", [
    f"Levels: Michigan 1y {exp_now.loc['mich_1y', 'latest']:.1f} ({ordinal(exp_now.loc['mich_1y', 'percentile'])} pct), SPF 4q {exp_now.loc['spf_cpi_4q', 'latest']:.1f} ({ordinal(exp_now.loc['spf_cpi_4q', 'percentile'])}), 5y breakeven {exp_now.loc['bei_5y', 'latest']:.2f} ({ordinal(exp_now.loc['bei_5y', 'percentile'])}), 5y5y {exp_now.loc['bei_5y5y', 'latest']:.2f} ({ordinal(exp_now.loc['bei_5y5y', 'percentile'])}), SPF 10y {exp_now.loc['spf_cpi_10y', 'latest']:.1f}.",
    f"Disagreement: SPF cross-sectional SD {exp_now.loc['spf_cpi_4q_sd', 'latest']:.2f} ({ordinal(exp_now.loc['spf_cpi_4q_sd', 'percentile'])} pct); households minus professionals {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp ({ordinal(exp_now.loc['mich_less_spf', 'percentile'])}).",
-   f"Predictive content: expectations block given history {blk_pred['12m']['B_exp']} at 12m; SPF dispersion as a single addition, rel RMSFE {RACE.loc['SPF dispersion', 'rel RMSFE 12m']:.2f} (t {RACE.loc['SPF dispersion', 't 12m']:+.1f}); Michigan 1y {RACE.loc['Michigan 1y', 'rel RMSFE 12m']:.2f} (t {RACE.loc['Michigan 1y', 't 12m']:+.1f}). "
-   f"Contribution to the 12m forecast {dec.loc['expectations', '12m']:+.2f} pp; the block is the {'most' if RESID.iloc[-1].idxmax() == 'B_exp' else 'not the most'} inflationary residual in the disagreement decomposition ({RESID.iloc[-1]['B_exp']:+.2f})."])
+   f"Predictive content: SPF dispersion as a single addition to core PCE 12m, rel RMSFE {RACE.loc['SPF dispersion', 'rel RMSFE 12m']:.2f} (t {RACE.loc['SPF dispersion', 't 12m']:+.1f}); Michigan 1y {RACE.loc['Michigan 1y', 'rel RMSFE 12m']:.2f} (t {RACE.loc['Michigan 1y', 't 12m']:+.1f}). "
+   f"The block is the {'most' if RESID.iloc[-1].idxmax() == 'B_exp' else 'not the most'} inflationary residual in the disagreement decomposition ({RESID.iloc[-1]['B_exp']:+.2f})."])
 qa("10. What drives the current forecast", [
-   f"12m forecast {dec.loc['forecast', '12m']:.1f}: history {d12['history']:+.2f}, all factors together {d12.drop('history').sum():+.2f} (table in section 5).", f"Pushing up: {pos_part}; pushing down: {neg_part}."])
+   f"12m projection {FC.loc['forecast', '12m']:.1f} against a current 12m rate of {D.loc[T, 'pi12']:.1f}; the block factors account for {BLOCK_GAIN['12m']:+.2f} pp of it relative to the global-only model.",
+   f"Over the last {len(NEWS)} months, news revised this projection by {NEWS.sum().sum():+.2f} pp. Pushing up: {pos_part}; pushing down: {neg_part}."])
 qa("11. Agreement or disagreement", [
    f"Cross-block disagreement {D_res.iloc[-1]:.2f}, {ordinal(pct_rank(D_res))} percentile (SD across factors {ordinal(pct_rank(D_sd))}). Outliers: {', '.join(f'{k} {v:+.2f}' for k, v in RESID.iloc[-1].sort_values(key=abs, ascending=False).head(3).items())}.",
    f"Within inflation measures {ordinal(pct_rank(D_infl12))} percentile; between price and non-price blocks {ordinal(pct_rank(D_res))}: {'mainly between price and non-price signals' if pct_rank(D_res) > pct_rank(D_infl12) + 15 else 'mainly within the inflation measures' if pct_rank(D_infl12) > pct_rank(D_res) + 15 else 'similar within and between'}; overall {'historically unusual' if pct_rank(D_res) > 85 else 'not historically unusual'}."])
@@ -631,23 +760,22 @@ qa("13. Disagreement and supply-versus-demand", [
    f"Correlates: cross-sectional dispersion {corr_rows['xs_sd_3m']['corr']:+.2f} (t {corr_rows['xs_sd_3m']['t (HAC)']:+.1f}), |oil shock| {corr_rows['abs_oil_12m']['corr']:+.2f}, flexible minus sticky {corr_rows['flex_less_sticky']['corr']:+.2f}, headline-core gap {corr_rows['headline_core_gap']['corr']:+.2f}.",
    f"Given current inflation and demand, a 1-sd rise in disagreement changes the subsequent 12m inflation change by {PRED.loc['beta D_res (pp per sd)', '12m']:+.2f} pp (t {PRED.loc['t', '12m']:+.1f}): {'faster mean reversion' if PRED.loc['beta D_res (pp per sd)', '12m'] < 0 else 'no faster mean reversion'}. Descriptive, not structural."])
 qa("14. Implications for the Fed debate", [
-   f"Projected core PCE stays {'above' if h12['forecast M3'] > 2 else 'at or below'} 2% at all horizons ({today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f}); projected change {h12['forecast change vs 12m']:+.2f} pp over 12m (history-only model {h12['forecast M1 history'] - h12['current 12m core PCE']:+.2f}).",
+   f"Projected core PCE stays {'above' if h12['forecast'] > 2 else 'at or below'} 2% at all horizons ({fc_str}); projected change {h12['change']:+.2f} pp over 12m (time-series benchmark {NOW.loc['M1 time series', '12m'] - h12['current']:+.2f}).",
    f"Evidence for deceleration: {n_dec}/{len(MEAS)} measures decelerating, P(lower in 12m) {p12:.0%}, analogs decelerating {(a1 < 0).mean():.0%}: {'strong' if (p12 > 0.65 and n_dec >= 0.7*len(MEAS)) else 'moderate' if p12 > 0.5 else 'weak'}.",
-   f"Uncertainty: 90% band {h12['90% band']}; block disagreement at the {ordinal(pct_rank(D_res))} percentile.",
-   f"Risks implied by the outputs: persistence {'high' if h12['forecast M3'] > 2.75 else 'moderate' if h12['forecast M3'] > 2.25 else 'low'} (forecast level); reacceleration {'elevated' if (ev_hist['reaccelerated within 6m'].mean() > 0.5 or z_now['B_exp'] > 1) else 'moderate'} (expectations residual {RESID.iloc[-1]['B_exp']:+.2f}, historical reacceleration frequency {ev_hist['reaccelerated within 6m'].mean():.0%}); "
+   f"Uncertainty: 12m pseudo-out-of-sample RMSE {OOS.loc['M3 global + block', '12m']:.2f} pp; block disagreement at the {ordinal(pct_rank(D_res))} percentile.",
+   f"Risks implied by the outputs: persistence {'high' if h12['forecast'] > 2.75 else 'moderate' if h12['forecast'] > 2.25 else 'low'} (forecast level); reacceleration {'elevated' if (ev_hist['reaccelerated within 6m'].mean() > 0.5 or z_now['B_exp'] > 1) else 'moderate'} (expectations residual {RESID.iloc[-1]['B_exp']:+.2f}, historical reacceleration frequency {ev_hist['reaccelerated within 6m'].mean():.0%}); "
    f"premature tightening {'notable' if pctF['B_dem'] < 30 else 'limited'} (demand factor at the {ordinal(pctF['B_dem'])} percentile)."])
 qa("15. Warsh, Waller, Kashkari", [
    f"Warsh (inflation broad, policy not restrictive): breadth at 12m at the {ordinal(pct_rank(b12s))} percentile ({100*b12s.iloc[-1]:.0f}% above 3%) and financial conditions at the {ordinal(pctF['B_fin'])} percentile on the loose side, so {'both legs' if pct_rank(b12s) > 60 and pctF['B_fin'] > 60 else 'the financial leg' if pctF['B_fin'] > 60 else 'the breadth leg' if pct_rank(b12s) > 60 else 'neither leg'} of the argument find support; demand at the {ordinal(pctF['B_dem'])} percentile does not.",
-   f"Waller (underlying inflation declining): {n_dec}/{len(MEAS)} measures show 3m below 12m; the model projects {h12['forecast change vs 12m']:+.2f} pp over 12m with P(lower) {p12:.0%}, so the momentum is {'confirmed' if p12 > 0.6 else 'only partly confirmed'}; comparable gaps were turning points {ev_hist['turning point'].mean():.0%} of the time.",
-   f"Kashkari (entrenchment from waiting): the 12m forecast stays at {h12['forecast M3']:.1f}%, the expectations block is the most inflationary residual ({RESID.iloc[-1]['B_exp']:+.2f}) with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals, and analogs reaccelerated in {np.mean(outc == 'reacceleration'):.0%} of cases: "
-   f"{'supports' if (h12['forecast M3'] > 2.75 and RESID.iloc[-1]['B_exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
+   f"Waller (underlying inflation declining): {n_dec}/{len(MEAS)} measures show 3m below 12m; the model projects {h12['change']:+.2f} pp over 12m with P(lower) {p12:.0%}, so the momentum is {'confirmed' if p12 > 0.6 else 'only partly confirmed'}; comparable gaps were turning points {ev_hist['turning point'].mean():.0%} of the time.",
+   f"Kashkari (entrenchment from waiting): the 12m forecast stays at {h12['forecast']:.1f}%, the expectations block is the most inflationary residual ({RESID.iloc[-1]['B_exp']:+.2f}) with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals, and analogs reaccelerated in {np.mean(outc == 'reacceleration'):.0%} of cases: "
+   f"{'supports' if (h12['forecast'] > 2.75 and RESID.iloc[-1]['B_exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
 R.p(TEXT["p06_caveat_latest_vintage_data_an"])
 R.summary([
     f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",
     TEXT["s02_we_collect_data_across_five_bl"],
-    f"The dynamic factor model that leverages data across all five blocks projects core PCE inflation of {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} percent annualized over the next 3/6/12 months, "
-    f"that is, a {'deceleration' if h12['forecast change vs 12m'] < 0 else 'acceleration'} of {abs(h12['forecast change vs 12m']):.1f} pp over the 12 months, and inflation is not expected to return to target over the near term.",
+    f"The dynamic factor model that leverages data across all five blocks projects 12-month core PCE inflation of {fc_str} percent at {hs_str} months ahead, "
+    f"that is, a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the 12 months, and inflation is not expected to return to target over the near term.",
     TEXT["s04_the_first_common_factor_in_eac"],
-    TEXT["s05_while_we_dont_see_evidence_of"],
     TEXT["s06_across_the_second_principal_co"]])
 R.write("report"); print(f"report.md / report.html written in {time.time()-t0:.0f}s; {len(list(FIG.glob('*.png')))} figures")

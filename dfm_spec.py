@@ -12,10 +12,18 @@ holds nothing but the panel, and run.py only ever smooths with the cached parame
 import pickle
 import numpy as np
 
-PARAMS_FILE = "dfm_params.npz"
 PANEL_FILE = "panel.pkl"
 MAXITER = 250
 TOL = 1e-5
+
+# The nested information sets. Parameters are estimated jointly, so a restricted set cannot be
+# obtained by zeroing factors out of the full fit: each specification needs its own EM run.
+SPECS = ("global", "full")
+SPEC_LABEL = {"global": "two global factors", "full": "two global factors plus one per block"}
+
+
+def params_file(spec):
+    return f"dfm_params_{spec}.npz"
 
 
 def stamp_of(X, end):
@@ -23,16 +31,26 @@ def stamp_of(X, end):
     return f"{X.shape[0]}x{X.shape[1]}@{end:%Y-%m}"
 
 
-def build(X, blocks):
-    """The model: two global factors plus one per block, joint VAR(1), AR(1) idiosyncratic."""
+def build(X, blocks, spec="full"):
+    """Joint VAR(1) factor dynamics, AR(1) idiosyncratic components.
+
+    spec="full"   : two global factors plus one factor per block
+    spec="global" : two global factors only
+    """
     from statsmodels.tsa.statespace.dynamic_factor_mq import DynamicFactorMQ
+    assert spec in SPECS, spec
     Xf = X.copy()
     Xf.columns = [c for _, c in X.columns]
     blk_of = {c: b for b, c in X.columns}
-    names = ["Global"] + list(blocks)
+    if spec == "full":
+        factors = {c: ["Global", blk_of[c]] for c in Xf.columns}
+        names = ["Global"] + list(blocks)
+    else:
+        factors = {c: ["Global"] for c in Xf.columns}
+        names = ["Global"]
     return DynamicFactorMQ(
         Xf,
-        factors={c: ["Global", blk_of[c]] for c in Xf.columns},
+        factors=factors,
         factor_multiplicities={"Global": 2},
         factor_orders={tuple(names): 1},
         idiosyncratic_ar1=True,

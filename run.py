@@ -230,14 +230,14 @@ BPC = {}; DESC = {}
 def block_eda(name, df, ref, flip=False, title=""):
     """Standardize over the panel window, PCA; figure: scree and PC1/PC2 paths; correlations with PC1 and one-factor residuals; correlations with PC2 and two-factor residuals."""
     def compute():   # the PCA with iterative imputation is the slow part; cached per block, keyed on the block's data
-        Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]
+        Zb = zscore(df[(df.index >= START) & (df.index <= END)].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]   # truncate at the panel end, see note above
         sc, ld, ex, Zf = pca(Zb, min(8, Zb.shape[1]))
         sgn = np.sign(np.corrcoef(sc["PC1"], Zb[ref].fillna(0))[0, 1]) * (-1 if flip else 1)
         f1 = sgn * sc["PC1"]; f1z = (f1 - f1.mean()) / f1.std(); l1 = Zf.corrwith(f1z)
         f2z = (sc["PC2"] - sc["PC2"].mean()) / sc["PC2"].std(); l2 = Zf.corrwith(f2z); s2 = np.sign(l2.loc[l2.abs().idxmax()]); f2z, l2 = s2 * f2z, s2 * l2   # PC2 sign: largest |correlation| positive
         res1 = (Zf - np.outer(f1z, l1)).where(Zb.notna()); res2 = (res1 - np.outer(f2z, l2)).where(Zb.notna())
         return dict(Zb=Zb, ex=ex, f1=f1, f1z=f1z, l1=l1, f2z=f2z, l2=l2, res1=res1, res2=res2)
-    dfw = df[df.index >= START]
+    dfw = df[(df.index >= START) & (df.index <= END)]
     key = (name, START, dfw.shape, str(dfw.index[-1].date()), tuple(dfw.columns), ref, flip, float(np.nansum(dfw.values)))
     c_ = stage(f"eda_{name}", compute, key=key)
     Zb, ex, f1, f1z, l1, f2z, l2, res1, res2 = (c_[k] for k in ("Zb", "ex", "f1", "f1z", "l1", "f2z", "l2", "res1", "res2")); BPC[name] = f1
@@ -284,7 +284,7 @@ for sid, tag, name, src in IDX:
 for m1, m12, tag, name, src in RATES:
     r1, r12 = m(m1), m(m12); B1[f"{tag}_1m"] = r1; B1[f"{tag}_3m"] = r1.rolling(3).mean(); B1[f"{tag}_6m"] = r1.rolling(6).mean(); B1[f"{tag}_12m"] = r12
     reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate")
-B1 = pd.DataFrame(B1)
+B1 = pd.DataFrame(B1); END = B1["pce_core_12m"].dropna().index[-1]   # panel end: the last core PCE print
 R.h(3, "Block 1: inflation measures")
 R.table(meta_table(1), "Block 1 indicators", small=True)
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")

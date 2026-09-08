@@ -248,7 +248,7 @@ How much of the projection depends on the breadth of the panel? Three nested inf
 
 Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.
 
-The five block factors share one common state that explains 60 percent of their joint variance. Its correlation with each block is infl +0.92, dist +0.84, exp +0.90, dem +0.46, fin -0.65: the blocks do not all move together. The common state stands at +0.01 standard deviations (48th percentile). Relative to what it implies, no block is unusually strong; none unusually weak. Disagreement, the root mean square of these residuals, is 0.11, the 0th percentile of its history.
+The five block factors share one common state that explains 60 percent of their joint variance. Its correlation with each block is infl +0.92, dist +0.84, exp +0.90, dem +0.46, fin -0.64: the blocks do not all move together. The common state stands at +0.01 standard deviations (48th percentile). Relative to what it implies, no block is unusually strong; none unusually weak. Disagreement, the root mean square of these residuals, is 0.11, the 0th percentile of its history.
 
 *Block factors, July 2026: level, what the common state implies, and the residual*
 
@@ -258,14 +258,14 @@ The five block factors share one common state that explains 60 percent of their 
 | dist | 0.84 | -0.01 | 0.01 | -0.02 |
 | exp | 0.90 | 0.19 | 0.01 | 0.18 |
 | dem | 0.46 | -0.15 | 0.00 | -0.15 |
-| fin | -0.65 | 0.07 | -0.01 | 0.08 |
+| fin | -0.64 | 0.07 | -0.01 | 0.08 |
 
 *Disagreement measures, current value and history*
 
 |  | current | percentile | median | p90 |
 |---|---|---|---|---|
 | D_res: residual RMS | 0.11 | 0.40 | 0.46 | 0.81 |
-| D_sd: SD across blocks | 0.12 | 0.20 | 0.81 | 1.30 |
+| D_sd: SD across blocks | 0.13 | 0.20 | 0.81 | 1.29 |
 | D_infl_12m: SD across 12m measures | 0.90 | 53.46 | 0.84 | 2.15 |
 | D_infl_3m: SD across 3m measures | 1.27 | 41.95 | 1.39 | 3.25 |
 
@@ -280,7 +280,7 @@ The five block factors share one common state that explains 60 percent of their 
 
 When in the past did the configuration of inflation signals look most like today?
 
-Cosine similarity between today's vector of five block factors (infl -0.0, dist -0.0, exp +0.2, dem -0.1, fin +0.1) and every past month, excluding the last 24 months and keeping at most one match per six-month window. The closest profiles are 1993-08, 2011-04, 2005-10, 1991-10, 1996-01 (cosine 0.82, 0.73, 0.69, 0.67, 0.63). Across the 15 analogs the median subsequent 12m core PCE is 2.06 (median change -0.02 pp, decelerating in 53%). Matching on the pattern of residuals instead, which asks when the blocks last disagreed in the same way, gives 1993-05, 2006-07, 2005-10, 1991-11, 2011-04 (median change -0.24). Not causal.
+Cosine similarity between today's vector of five block factors (infl -0.0, dist -0.0, exp +0.2, dem -0.1, fin +0.1) and every past month, excluding the last 24 months and keeping at most one match per six-month window. The closest profiles are 1993-08, 2011-04, 2005-10, 1991-10, 1996-01 (cosine 0.83, 0.74, 0.69, 0.66, 0.63). Across the 15 analogs the median subsequent 12m core PCE is 2.06 (median change -0.02 pp, decelerating in 53%). Matching on the pattern of residuals instead, which asks when the blocks last disagreed in the same way, gives 1993-05, 2006-07, 2005-10, 1991-11, 2011-04 (median change -0.28). Not causal.
 
 ![Cosine similarity of the historical block-factor profile to today's.](figures/analogs.png)
 *Cosine similarity of the historical block-factor profile to today's.*
@@ -289,21 +289,21 @@ Cosine similarity between today's vector of five block factors (infl -0.0, dist 
 
 |  | cosine | magnitude ratio | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
 |---|---|---|---|---|---|---|---|---|
-| 1993-08 | 0.82 | 3.44 | 2.77 | 2.29 | 1.82 | 2.17 | -0.60 | 0.38 |
-| 2011-04 | 0.73 | 5.92 | 1.39 | 1.98 | 1.62 | 1.95 | 0.56 | 0.65 |
-| 2005-10 | 0.69 | 4.34 | 2.24 | 2.33 | 2.65 | 2.47 | 0.23 | 0.36 |
-| 1991-10 | 0.67 | 7.19 | 3.25 | 2.82 | 3.11 | 2.79 | -0.47 | 0.63 |
-| 1996-01 | 0.63 | 1.28 | 1.99 | 1.99 | 1.87 | 1.84 | -0.15 | 0.13 |
-| 2008-05 | 0.63 | 6.81 | 2.13 | 2.13 | 0.90 | 0.82 | -1.31 | 0.68 |
-| 1992-09 | 0.56 | 4.03 | 2.62 | 3.15 | 2.97 | 2.75 | 0.13 | 0.39 |
-| 2006-08 | 0.53 | 4.11 | 2.64 | 1.54 | 2.28 | 1.97 | -0.67 | 0.26 |
-| 2007-06 | 0.52 | 3.61 | 1.97 | 2.29 | 2.46 | 2.19 | 0.22 | 0.31 |
-| 1995-05 | 0.52 | 4.99 | 2.21 | 1.94 | 1.85 | 1.85 | -0.36 | 0.48 |
-| 2004-06 | 0.46 | 2.72 | 2.09 | 1.38 | 1.81 | 2.06 | -0.02 | 0.29 |
-| 2002-04 | 0.42 | 4.36 | 1.56 | 1.89 | 1.84 | 1.59 | 0.03 | 0.46 |
-| 1991-04 | 0.39 | 9.07 | 3.49 | 3.67 | 3.62 | 3.36 | -0.13 | 0.87 |
-| 2009-08 | 0.36 | 14.14 | 0.65 | 2.52 | 1.90 | 1.41 | 0.76 | 1.16 |
-| 2020-04 | 0.32 | 37.59 | 0.99 | 2.46 | 2.31 | 3.08 | 2.09 | 3.36 |
+| 1993-08 | 0.83 | 3.43 | 2.77 | 2.29 | 1.82 | 2.17 | -0.60 | 0.38 |
+| 2011-04 | 0.74 | 5.88 | 1.39 | 1.98 | 1.62 | 1.95 | 0.56 | 0.65 |
+| 2005-10 | 0.69 | 4.32 | 2.24 | 2.33 | 2.65 | 2.47 | 0.23 | 0.37 |
+| 1991-10 | 0.66 | 7.14 | 3.25 | 2.82 | 3.11 | 2.79 | -0.47 | 0.63 |
+| 1996-01 | 0.63 | 1.27 | 1.99 | 1.99 | 1.87 | 1.84 | -0.15 | 0.13 |
+| 2008-05 | 0.62 | 6.77 | 2.13 | 2.13 | 0.90 | 0.82 | -1.31 | 0.68 |
+| 1992-09 | 0.55 | 4.00 | 2.62 | 3.15 | 2.97 | 2.75 | 0.13 | 0.39 |
+| 2006-08 | 0.53 | 4.08 | 2.64 | 1.54 | 2.28 | 1.97 | -0.67 | 0.25 |
+| 2007-06 | 0.52 | 3.58 | 1.97 | 2.29 | 2.46 | 2.19 | 0.22 | 0.31 |
+| 1995-05 | 0.51 | 4.94 | 2.21 | 1.94 | 1.85 | 1.85 | -0.36 | 0.48 |
+| 2004-06 | 0.47 | 2.70 | 2.09 | 1.38 | 1.81 | 2.06 | -0.02 | 0.29 |
+| 2002-04 | 0.40 | 4.35 | 1.56 | 1.89 | 1.84 | 1.59 | 0.03 | 0.46 |
+| 1991-04 | 0.38 | 8.98 | 3.49 | 3.67 | 3.62 | 3.36 | -0.13 | 0.86 |
+| 2009-08 | 0.35 | 14.04 | 0.65 | 2.52 | 1.90 | 1.41 | 0.76 | 1.16 |
+| 2005-04 | 0.31 | 3.69 | 2.09 | 1.68 | 2.02 | 2.33 | 0.25 | 0.39 |
 
 
 ## 5. Supply-like versus demand-like episodes and disagreement
@@ -316,8 +316,8 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 
 |  | months | D_res mean | D_res median | share D_res > p75 | next-12m change, median |
 |---|---|---|---|---|---|
-| adverse-supply-like (infl high, demand weak) | 104 | 0.48 | 0.46 | 0.23 | -0.43 |
-| demand-like (infl high, demand high) | 144 | 0.56 | 0.45 | 0.25 | -0.23 |
+| adverse-supply-like (infl high, demand weak) | 105 | 0.48 | 0.46 | 0.23 | -0.43 |
+| demand-like (infl high, demand high) | 143 | 0.56 | 0.45 | 0.25 | -0.22 |
 | favorable-supply-like (infl low, demand strong) | 106 | 0.51 | 0.51 | 0.28 | -0.01 |
 | weak-demand (infl low, demand weak) | 144 | 0.57 | 0.42 | 0.24 | 0.04 |
 
@@ -325,10 +325,10 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 
 |  | corr | t (HAC) |
 |---|---|---|
-| headline_core_gap | -0.02 | -0.11 |
-| flex_less_sticky | 0.10 | 0.44 |
+| headline_core_gap | -0.02 | -0.12 |
+| flex_less_sticky | 0.10 | 0.43 |
 | xs_sd_3m | 0.52 | 3.88 |
-| oil_12m | -0.13 | -0.64 |
+| oil_12m | -0.13 | -0.65 |
 | abs_oil_12m | 0.49 | 3.19 |
 
 *Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)*
@@ -336,11 +336,11 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 |  | 3m | 6m | 12m |
 |---|---|---|---|
 | beta D_res (pp per sd) | 0.13 | 0.13 | 0.17 |
-| t | 1.65 | 1.50 | 1.89 |
+| t | 1.64 | 1.50 | 1.89 |
 | gamma pi12 | -0.19 | -0.21 | -0.29 |
-| t  | -3.36 | -3.34 | -3.61 |
+| t  | -3.35 | -3.34 | -3.61 |
 | delta B_dem | 0.01 | 0.01 | -0.00 |
-| t   | 0.11 | 0.11 | -0.01 |
+| t   | 0.12 | 0.11 | -0.00 |
 | R2 | 0.07 | 0.11 | 0.20 |
 
 
@@ -480,7 +480,7 @@ Four further pieces of evidence feed the answers in the next section: the probab
 ### 12. Historical analogs
 
 - Closest configurations: 1993-08, 2011-04, 2005-10, 1991-10, 1996-01, 2008-05.
-- Subsequent 3/6/12m core PCE (median) 2.3 / 1.9 / 2.1; 12m change median -0.02. Outcomes: sustained disinflation 20%, reacceleration 20%, mixed 60%.
+- Subsequent 3/6/12m core PCE (median) 2.1 / 1.9 / 2.1; 12m change median -0.02. Outcomes: sustained disinflation 20%, reacceleration 13%, mixed 67%.
 
 
 ### 13. Disagreement and supply-versus-demand
@@ -502,6 +502,6 @@ Four further pieces of evidence feed the answers in the next section: the probab
 
 - Warsh (inflation broad, policy not restrictive): breadth at 12m at the 65th percentile (56% above 3%) and financial conditions at the 45th percentile on the loose side, so the breadth leg of the argument find support; demand at the 20th percentile does not.
 - Waller (underlying inflation declining): 10/11 measures show 3m below 12m; the model projects -0.93 pp over 12m with P(lower) 87%, so the momentum is confirmed; comparable gaps were turning points 38% of the time.
-- Kashkari (entrenchment from waiting): the 12m forecast stays at 2.4%, the expectations block is the most inflationary residual (+0.18) with households +1.9 pp above professionals, and analogs reaccelerated in 20% of cases: partly supports the concern on level and expectations, less so on historical reacceleration.
+- Kashkari (entrenchment from waiting): the 12m forecast stays at 2.4%, the expectations block is the most inflationary residual (+0.18) with households +1.9 pp above professionals, and analogs reaccelerated in 13% of cases: partly supports the concern on level and expectations, less so on historical reacceleration.
 
 Caveat: latest-vintage data and full-sample factor loadings; the news decomposition is pseudo-real-time (no data revisions; publication lags only at the ragged edge). Rule-based wording thresholds are in the answers section of run.py.

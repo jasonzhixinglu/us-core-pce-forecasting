@@ -237,23 +237,23 @@ def block_eda(name, df, ref, flip=False, title=""):
     f1 = sgn * sc["PC1"]; BPC[name] = f1; f1z = (f1 - f1.mean()) / f1.std(); l1 = Zf.corrwith(f1z)
     f2z = (sc["PC2"] - sc["PC2"].mean()) / sc["PC2"].std(); l2 = Zf.corrwith(f2z); s2 = np.sign(l2.loc[l2.abs().idxmax()]); f2z, l2 = s2 * f2z, s2 * l2   # PC2 sign: largest |correlation| positive
     res1 = (Zf - np.outer(f1z, l1)).where(Zb.notna()); res2 = (res1 - np.outer(f2z, l2)).where(Zb.notna())
-    fig, ax = plt.subplots(3, 2, figsize=(15, 11.5), gridspec_kw={"width_ratios": [1, 1.7]})
+    fig, ax = plt.subplots(3, 2, figsize=(15, 12.5), gridspec_kw={"width_ratios": [1, 1.7], "height_ratios": [0.8, 1, 1]})
     ax[0, 0].bar(range(1, len(ex) + 1), 100 * ex, color="#1e293b"); ax[0, 0].set_title(f"Scree, % of variance (PC1 {100*ex[0]:.0f}%, PC2 {100*ex[1]:.0f}%)"); ax[0, 0].set_xticks(range(1, len(ex) + 1))
     ax[0, 1].plot(f1z.index, f1z, color="k", lw=1.3, label="PC1"); ax[0, 1].plot(f2z.index, f2z, color="k", lw=1, ls="--", label="PC2"); ax[0, 1].axhline(0, color="grey", lw=.6)
     ax[0, 1].set_title(f"Factors, standardized (PC1: + = inflationary; latest {f1z.iloc[-1]:+.1f}, {ordinal(pct_rank(f1))} percentile)"); ax[0, 1].legend(frameon=False)
+    KROWS = 30
     def corr_panel(a, l, lab):
-        k = min(20, len(l)); show = l.reindex(l.abs().sort_values().index[-k:])
-        a.barh(range(k), show.abs().values, color=np.where(show.values > 0, "#1e293b", "#7c9cc6")); a.set_yticks(range(k)); a.set_yticklabels([f"{vname(c)}{' (inv)' if v < 0 else ''}" for c, v in show.items()], fontsize=7)
-        a.set_xlim(0, 1); a.set_title(f"|corr| with {lab}, top {k} of {len(l)} (inv = sign inverted)", fontsize=8.5)
-    def heat(a, res, l, lab):
-        order = l.abs().sort_values(ascending=False).index          # largest |correlation| at the top, matching the bar chart
-        im = a.imshow(res[order].T.values, aspect="auto", cmap="RdBu_r", vmin=-3, vmax=3, extent=[mdates.date2num(res.index[0]), mdates.date2num(res.index[-1]), len(order), 0]); a.xaxis_date(); a.grid(False)
-        last = res[order].iloc[-3:].mean()                       # label every variable when readable, otherwise only those with a large end-of-sample residual
-        lab_rows = list(range(len(order))) if len(order) <= 45 else [i for i, c in enumerate(order) if abs(last[c]) > 1.0]
-        a.yaxis.tick_right(); a.set_yticks([i + 0.5 for i in lab_rows]); a.set_yticklabels([f"{vname(order[i])} ({last[order[i]]:+.1f})" for i in lab_rows], fontsize=5.5 if len(lab_rows) > 25 else 7); a.tick_params(axis="y", length=0)
-        a.set_title(f"Residuals, {lab} fit (rows by |loading|; red = above the factor fit; label = last-3-month mean, sd)", fontsize=8.5)
-        fig.colorbar(im, ax=a, orientation="horizontal", shrink=.35, pad=.12, aspect=40)
-    corr_panel(ax[1, 0], l1, "PC1"); heat(ax[1, 1], res1, l1, "one-factor"); corr_panel(ax[2, 0], l2, "PC2"); heat(ax[2, 1], res2, l2, "two-factor")
+        sel = l.abs().sort_values(ascending=False).index[:KROWS]; show = l[sel]; k = len(sel)
+        a.barh(np.arange(k) + 0.5, show.abs().values, height=0.8, color=np.where(show.values > 0, "#1e293b", "#7c9cc6")); a.set_ylim(k, 0)
+        a.set_yticks(np.arange(k) + 0.5); a.set_yticklabels([f"{vname(c)}{' (inv)' if v < 0 else ''}" for c, v in show.items()], fontsize=6.5 if k > 20 else 7)
+        a.set_xlim(0, 1); a.set_title(f"|corr| with {lab}, top {k} of {len(l)} (inv = sign inverted)", fontsize=8.5); return sel
+    def heat(a, res, sel, lab):
+        last = res[sel].iloc[-3:].mean(); k = len(sel)
+        im = a.imshow(res[sel].T.values, aspect="auto", cmap="RdBu_r", vmin=-3, vmax=3, extent=[mdates.date2num(res.index[0]), mdates.date2num(res.index[-1]), k, 0]); a.xaxis_date(); a.grid(False); a.set_ylim(k, 0)
+        a.yaxis.tick_right(); a.set_yticks(np.arange(k) + 0.5); a.set_yticklabels([f"{vname(c)} ({last[c]:+.1f})" for c in sel], fontsize=6.5 if k > 20 else 7); a.tick_params(axis="y", length=0)
+        a.set_title(f"Residuals, {lab} fit (same rows and order as the bars; red = above the factor fit; label = last-3-month mean, sd)", fontsize=8.5)
+        cax = a.inset_axes([0.3, -0.2, 0.4, 0.04]); fig.colorbar(im, cax=cax, orientation="horizontal"); cax.tick_params(labelsize=7)
+    heat(ax[1, 1], res1, corr_panel(ax[1, 0], l1, "PC1"), "one-factor"); heat(ax[2, 1], res2, corr_panel(ax[2, 0], l2, "PC2"), "two-factor")
     plt.tight_layout(); R.fig(fig, f"block_{name}", title)
     DESC[(name, 1)] = describe_factor(name, l1); DESC[(name, 2)] = describe_factor(name, l2)
     R.p(f"PC1 is {DESC[(name, 1)]}. {READING.get((name, 1), '')}")

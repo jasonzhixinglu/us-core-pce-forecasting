@@ -248,19 +248,29 @@ How much of the projection depends on the breadth of the panel? Three nested inf
 
 Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.
 
-A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains 31% of their variance): how poorly can today's signals be reconciled by one common state? C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.
+The five block factors share one common state that explains 60 percent of their joint variance. Its correlation with each block is infl +0.92, dist +0.84, exp +0.90, dem +0.46, fin -0.65: the blocks do not all move together. The common state stands at +0.01 standard deviations (48th percentile). Relative to what it implies, no block is unusually strong; none unusually weak. Disagreement, the root mean square of these residuals, is 0.11, the 0th percentile of its history.
+
+*Block factors, July 2026: level, what the common state implies, and the residual*
+
+|  | correlation with common state | current level (z) | implied by common state | residual (z) |
+|---|---|---|---|---|
+| infl | 0.92 | -0.03 | 0.01 | -0.04 |
+| dist | 0.84 | -0.01 | 0.01 | -0.02 |
+| exp | 0.90 | 0.19 | 0.01 | 0.18 |
+| dem | 0.46 | -0.15 | 0.00 | -0.15 |
+| fin | -0.65 | 0.07 | -0.01 | 0.08 |
 
 *Disagreement measures, current value and history*
 
 |  | current | percentile | median | p90 |
 |---|---|---|---|---|
-| D_sd (A) | 1.10 | 75.75 | 0.85 | 1.47 |
-| D_res (B) | 1.09 | 84.57 | 0.65 | 1.26 |
-| D_infl_12m (C) | 0.90 | 53.46 | 0.84 | 2.15 |
-| D_infl_3m (C) | 1.27 | 41.95 | 1.39 | 3.25 |
+| D_res: residual RMS | 0.11 | 0.40 | 0.46 | 0.81 |
+| D_sd: SD across blocks | 0.12 | 0.20 | 0.81 | 1.30 |
+| D_infl_12m: SD across 12m measures | 0.90 | 53.46 | 0.84 | 2.15 |
+| D_infl_3m: SD across 3m measures | 1.27 | 41.95 | 1.39 | 3.25 |
 
-![Cross-block disagreement and the current residual by signal.](figures/disagreement.png)
-*Cross-block disagreement and the current residual by signal.*
+![Common state across the block factors, and the current residual by block.](figures/disagreement.png)
+*Common state across the block factors, and the current residual by block.*
 
 ![Disagreement among inflation measures, and breadth versus dispersion.](figures/disagreement_inflation.png)
 *Disagreement among inflation measures, and breadth versus dispersion.*
@@ -270,27 +280,30 @@ A: cross-sectional SD of the seven standardized factors. B: residual RMS after f
 
 When in the past did the configuration of inflation signals look most like today?
 
-Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is 1.97 (median change +0.07 pp, decelerating in 47%). Matching on the pattern of disagreement instead gives 2003-03, 2005-09, 2007-05, 2001-05, 2008-02 (median change +0.07). Not causal.
+Cosine similarity between today's vector of five block factors (infl -0.0, dist -0.0, exp +0.2, dem -0.1, fin +0.1) and every past month, excluding the last 24 months and keeping at most one match per six-month window. The closest profiles are 1993-08, 2011-04, 2005-10, 1991-10, 1996-01 (cosine 0.82, 0.73, 0.69, 0.67, 0.63). Across the 15 analogs the median subsequent 12m core PCE is 2.06 (median change -0.02 pp, decelerating in 53%). Matching on the pattern of residuals instead, which asks when the blocks last disagreed in the same way, gives 1993-05, 2006-07, 2005-10, 1991-11, 2011-04 (median change -0.24). Not causal.
 
-*Analogs on the factor vector, origin Jul 2026*
+![Cosine similarity of the historical block-factor profile to today's.](figures/analogs.png)
+*Cosine similarity of the historical block-factor profile to today's.*
 
-|  | distance | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
-|---|---|---|---|---|---|---|---|
-| 2003-03 | 1.05 | 1.75 | 1.24 | 1.62 | 1.84 | 0.09 | 0.82 |
-| 2005-09 | 1.19 | 2.17 | 2.58 | 2.61 | 2.57 | 0.40 | 1.01 |
-| 2007-05 | 1.74 | 2.05 | 1.86 | 2.39 | 2.13 | 0.07 | 0.73 |
-| 2001-05 | 1.81 | 1.92 | 2.12 | 1.73 | 1.65 | -0.28 | 0.49 |
-| 2004-07 | 1.96 | 1.96 | 1.77 | 2.29 | 2.09 | 0.14 | 0.51 |
-| 2008-02 | 2.07 | 2.05 | 1.74 | 1.94 | 0.88 | -1.17 | 0.94 |
-| 2006-08 | 2.11 | 2.64 | 1.54 | 2.28 | 1.97 | -0.67 | 0.40 |
-| 1992-09 | 2.15 | 2.62 | 3.15 | 2.97 | 2.75 | 0.13 | 0.40 |
-| 1993-07 | 2.30 | 2.67 | 2.00 | 1.77 | 2.24 | -0.43 | 0.33 |
-| 2017-04 | 2.33 | 1.62 | 1.15 | 1.52 | 1.87 | 0.24 | 0.74 |
-| 1996-12 | 2.37 | 1.84 | 2.20 | 1.93 | 1.44 | -0.40 | 0.37 |
-| 1989-08 | 2.43 | 3.87 | 3.90 | 4.25 | 4.26 | 0.39 | 0.83 |
-| 2000-10 | 2.49 | 1.80 | 2.58 | 2.17 | 1.77 | -0.03 | 0.28 |
-| 1996-04 | 2.51 | 1.84 | 1.75 | 2.13 | 1.98 | 0.14 | 0.27 |
-| 2012-02 | 2.52 | 2.01 | 1.69 | 1.38 | 1.55 | -0.46 | 0.50 |
+*Analogs by cosine similarity of the block-factor profile, origin Jul 2026*
+
+|  | cosine | magnitude ratio | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
+|---|---|---|---|---|---|---|---|---|
+| 1993-08 | 0.82 | 3.44 | 2.77 | 2.29 | 1.82 | 2.17 | -0.60 | 0.38 |
+| 2011-04 | 0.73 | 5.92 | 1.39 | 1.98 | 1.62 | 1.95 | 0.56 | 0.65 |
+| 2005-10 | 0.69 | 4.34 | 2.24 | 2.33 | 2.65 | 2.47 | 0.23 | 0.36 |
+| 1991-10 | 0.67 | 7.19 | 3.25 | 2.82 | 3.11 | 2.79 | -0.47 | 0.63 |
+| 1996-01 | 0.63 | 1.28 | 1.99 | 1.99 | 1.87 | 1.84 | -0.15 | 0.13 |
+| 2008-05 | 0.63 | 6.81 | 2.13 | 2.13 | 0.90 | 0.82 | -1.31 | 0.68 |
+| 1992-09 | 0.56 | 4.03 | 2.62 | 3.15 | 2.97 | 2.75 | 0.13 | 0.39 |
+| 2006-08 | 0.53 | 4.11 | 2.64 | 1.54 | 2.28 | 1.97 | -0.67 | 0.26 |
+| 2007-06 | 0.52 | 3.61 | 1.97 | 2.29 | 2.46 | 2.19 | 0.22 | 0.31 |
+| 1995-05 | 0.52 | 4.99 | 2.21 | 1.94 | 1.85 | 1.85 | -0.36 | 0.48 |
+| 2004-06 | 0.46 | 2.72 | 2.09 | 1.38 | 1.81 | 2.06 | -0.02 | 0.29 |
+| 2002-04 | 0.42 | 4.36 | 1.56 | 1.89 | 1.84 | 1.59 | 0.03 | 0.46 |
+| 1991-04 | 0.39 | 9.07 | 3.49 | 3.67 | 3.62 | 3.36 | -0.13 | 0.87 |
+| 2009-08 | 0.36 | 14.14 | 0.65 | 2.52 | 1.90 | 1.41 | 0.76 | 1.16 |
+| 2020-04 | 0.32 | 37.59 | 0.99 | 2.46 | 2.31 | 3.08 | 2.09 | 3.36 |
 
 
 ## 5. Supply-like versus demand-like episodes and disagreement
@@ -303,32 +316,32 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 
 |  | months | D_res mean | D_res median | share D_res > p75 | next-12m change, median |
 |---|---|---|---|---|---|
-| adverse-supply-like (infl high, demand weak) | 105 | 0.70 | 0.65 | 0.34 | -0.43 |
-| demand-like (infl high, demand high) | 144 | 0.76 | 0.72 | 0.29 | -0.23 |
-| favorable-supply-like (infl low, demand strong) | 106 | 0.53 | 0.52 | 0.03 | -0.01 |
-| weak-demand (infl low, demand weak) | 144 | 0.84 | 0.68 | 0.31 | 0.04 |
+| adverse-supply-like (infl high, demand weak) | 104 | 0.48 | 0.46 | 0.23 | -0.43 |
+| demand-like (infl high, demand high) | 144 | 0.56 | 0.45 | 0.25 | -0.23 |
+| favorable-supply-like (infl low, demand strong) | 106 | 0.51 | 0.51 | 0.28 | -0.01 |
+| weak-demand (infl low, demand weak) | 144 | 0.57 | 0.42 | 0.24 | 0.04 |
 
 *Contemporaneous correlates of disagreement (standardized regressors, HAC t)*
 
 |  | corr | t (HAC) |
 |---|---|---|
-| headline_core_gap | -0.09 | -0.61 |
-| flex_less_sticky | -0.01 | -0.07 |
-| xs_sd_3m | 0.51 | 5.57 |
-| oil_12m | -0.16 | -1.02 |
-| abs_oil_12m | 0.52 | 4.45 |
+| headline_core_gap | -0.02 | -0.11 |
+| flex_less_sticky | 0.10 | 0.44 |
+| xs_sd_3m | 0.52 | 3.88 |
+| oil_12m | -0.13 | -0.64 |
+| abs_oil_12m | 0.49 | 3.19 |
 
 *Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
-| beta D_res (pp per sd) | 0.05 | 0.05 | 0.11 |
-| t | 0.59 | 0.50 | 1.31 |
-| gamma pi12 | -0.18 | -0.21 | -0.29 |
-| t  | -3.25 | -3.30 | -3.79 |
-| delta B_dem | -0.03 | -0.03 | -0.02 |
-| t   | -0.37 | -0.31 | -0.18 |
-| R2 | 0.05 | 0.09 | 0.18 |
+| beta D_res (pp per sd) | 0.13 | 0.13 | 0.17 |
+| t | 1.65 | 1.50 | 1.89 |
+| gamma pi12 | -0.19 | -0.21 | -0.29 |
+| t  | -3.36 | -3.34 | -3.61 |
+| delta B_dem | 0.01 | 0.01 | -0.00 |
+| t   | 0.11 | 0.11 | -0.01 |
+| R2 | 0.07 | 0.11 | 0.20 |
 
 
 ## 6. Additional evidence
@@ -429,7 +442,7 @@ Four further pieces of evidence feed the answers in the next section: the probab
 ### 6. Recent favorable readings: signal or noise
 
 - Spells with core PCE 3m at least 1 pp below 12m: 8 since 1985; a genuine turning point (12m rate down at least 0.5 pp a year later) in 38%, reacceleration within six months in 50%.
-- Today's gap is -0.29 pp (below the event threshold). The factor-space analogs saw a median 12m change of +0.07 pp with deceleration in 47% of cases: closer to a soft patch than a sustained disinflation.
+- Today's gap is -0.29 pp (below the event threshold). The factor-space analogs saw a median 12m change of -0.02 pp with deceleration in 53% of cases: closer to a soft patch than a sustained disinflation.
 
 
 ### 7. Are financial conditions restrictive
@@ -449,7 +462,7 @@ Four further pieces of evidence feed the answers in the next section: the probab
 
 - Levels: Michigan 1y 4.2 (79th pct), SPF 4q 2.3 (48th), 5y breakeven 2.37 (75th), 5y5y 2.33 (55th), SPF 10y 2.3.
 - Disagreement: SPF cross-sectional SD 0.94 (95th pct); households minus professionals +1.9 pp (96th).
-- Predictive content: SPF dispersion as a single addition to core PCE 12m, rel RMSFE 1.07 (t +1.5); Michigan 1y 1.03 (t -0.1). The block is the not the most inflationary residual in the disagreement decomposition (-0.02).
+- Predictive content: SPF dispersion as a single addition to core PCE 12m, rel RMSFE 1.07 (t +1.5); Michigan 1y 1.03 (t -0.1). The block is the most inflationary residual in the disagreement decomposition (+0.18).
 
 
 ### 10. What drives the current forecast
@@ -460,35 +473,35 @@ Four further pieces of evidence feed the answers in the next section: the probab
 
 ### 11. Agreement or disagreement
 
-- Cross-block disagreement 1.09, 85th percentile (SD across factors 76th). Outliers: B_infl +2.66, G2 +0.83, B_dem -0.64.
-- Within inflation measures 53rd percentile; between price and non-price blocks 85th: mainly between price and non-price signals; overall not historically unusual.
+- Cross-block disagreement 0.11, 0th percentile (SD across factors 0th). Outliers: exp +0.18, dem -0.15, fin +0.08.
+- Within inflation measures 53rd percentile; between price and non-price blocks 0th: mainly within the inflation measures; overall not historically unusual.
 
 
 ### 12. Historical analogs
 
-- Closest configurations: 2003-03, 2005-09, 2007-05, 2001-05, 2004-07, 2008-02.
-- Subsequent 3/6/12m core PCE (median) 1.9 / 2.1 / 2.0; 12m change median +0.07. Outcomes: sustained disinflation 13%, reacceleration 0%, mixed 87%.
+- Closest configurations: 1993-08, 2011-04, 2005-10, 1991-10, 1996-01, 2008-05.
+- Subsequent 3/6/12m core PCE (median) 2.3 / 1.9 / 2.1; 12m change median -0.02. Outcomes: sustained disinflation 20%, reacceleration 20%, mixed 60%.
 
 
 ### 13. Disagreement and supply-versus-demand
 
-- Mean disagreement by regime: adverse-supply-like 0.70, demand-like 0.76, favorable-supply-like 0.53, weak-demand 0.84: not higher in supply-like than in demand-led episodes.
-- Correlates: cross-sectional dispersion +0.51 (t +5.6), |oil shock| +0.52, flexible minus sticky -0.01, headline-core gap -0.09.
-- Given current inflation and demand, a 1-sd rise in disagreement changes the subsequent 12m inflation change by +0.11 pp (t +1.3): no faster mean reversion. Descriptive, not structural.
+- Mean disagreement by regime: adverse-supply-like 0.48, demand-like 0.56, favorable-supply-like 0.51, weak-demand 0.57: not higher in supply-like than in demand-led episodes.
+- Correlates: cross-sectional dispersion +0.52 (t +3.9), |oil shock| +0.49, flexible minus sticky +0.10, headline-core gap -0.02.
+- Given current inflation and demand, a 1-sd rise in disagreement changes the subsequent 12m inflation change by +0.17 pp (t +1.9): no faster mean reversion. Descriptive, not structural.
 
 
 ### 14. Implications for the Fed debate
 
 - Projected core PCE stays above 2% at all horizons (3.3 / 2.9 / 2.4 / 2.4); projected change -0.93 pp over 12m (time-series benchmark -0.17).
-- Evidence for deceleration: 10/11 measures decelerating, P(lower in 12m) 87%, analogs decelerating 47%: strong.
-- Uncertainty: 12m pseudo-out-of-sample RMSE 0.83 pp; block disagreement at the 85th percentile.
-- Risks implied by the outputs: persistence moderate (forecast level); reacceleration moderate (expectations residual -0.02, historical reacceleration frequency 50%); premature tightening notable (demand factor at the 20th percentile).
+- Evidence for deceleration: 10/11 measures decelerating, P(lower in 12m) 87%, analogs decelerating 53%: strong.
+- Uncertainty: 12m pseudo-out-of-sample RMSE 0.83 pp; block disagreement at the 0th percentile.
+- Risks implied by the outputs: persistence moderate (forecast level); reacceleration moderate (expectations residual +0.18, historical reacceleration frequency 50%); premature tightening notable (demand factor at the 20th percentile).
 
 
 ### 15. Warsh, Waller, Kashkari
 
 - Warsh (inflation broad, policy not restrictive): breadth at 12m at the 65th percentile (56% above 3%) and financial conditions at the 45th percentile on the loose side, so the breadth leg of the argument find support; demand at the 20th percentile does not.
 - Waller (underlying inflation declining): 10/11 measures show 3m below 12m; the model projects -0.93 pp over 12m with P(lower) 87%, so the momentum is confirmed; comparable gaps were turning points 38% of the time.
-- Kashkari (entrenchment from waiting): the 12m forecast stays at 2.4%, the expectations block is the most inflationary residual (-0.02) with households +1.9 pp above professionals, and analogs reaccelerated in 0% of cases: partly supports the concern on level and expectations, less so on historical reacceleration.
+- Kashkari (entrenchment from waiting): the 12m forecast stays at 2.4%, the expectations block is the most inflationary residual (+0.18) with households +1.9 pp above professionals, and analogs reaccelerated in 20% of cases: partly supports the concern on level and expectations, less so on historical reacceleration.
 
 Caveat: latest-vintage data and full-sample factor loadings; the news decomposition is pseudo-real-time (no data revisions; publication lags only at the ragged edge). Rule-based wording thresholds are in the answers section of run.py.

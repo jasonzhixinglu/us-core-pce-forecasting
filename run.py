@@ -603,40 +603,72 @@ ax.set_title("Core PCE inflation, 12-month rate: implied forecast path by inform
 R.fig(fig, "forecast_sets", "Implied 12-month core PCE inflation under each information set. Paths coincide over the first quarter, where nine of twelve months are realized, and diverge as the forecast share of the window grows.")
 # =============================================================================== disagreement
 R.h(2, "3. Agreement and disagreement")
-Fz7 = Fz.dropna(); D_sd = Fz7.std(axis=1); C1, lamb, exC, _ = pca(Fz7, 1); RESID = Fz7 - pd.DataFrame(np.outer(C1["PC1"], lamb["PC1"]), index=Fz7.index, columns=Fz7.columns); D_res = np.sqrt((RESID ** 2).mean(axis=1))
+# The object is the first principal component of each block from section 1, standardized: five
+# one-line summaries of inflation, its distribution, expectations, demand and financial
+# conditions (the last oriented so that + = looser). A one-factor PCA across the five gives their
+# average historical comovement; the residual says which blocks are stronger or weaker than that
+# comovement implies today.
+PC1 = pd.DataFrame(BPC).reindex(X.index).dropna(); PC1 = (PC1 - PC1.mean()) / PC1.std()
+C1, lamb, exC, _ = pca(PC1, 1); sgc = np.sign(lamb.loc["infl", "PC1"]); COMMON = sgc * (C1["PC1"] - C1["PC1"].mean()) / C1["PC1"].std()
+LOADC = PC1.corrwith(COMMON)                                     # loadings as correlations with the common state, one per block
+RESID = PC1 - pd.DataFrame(np.outer(COMMON, LOADC), index=PC1.index, columns=PC1.columns)
+D_res = np.sqrt((RESID ** 2).mean(axis=1)); D_sd = PC1.std(axis=1)
 MEAS = ["cpi", "cpi_core", "pce", "pce_core", "cpi_median", "cpi_trim", "pce_trim", "cpi_sticky", "cpi_core_sticky", "cpi_flex", "cpi_core_flex"]
 meas12 = B1[[f"{t}_12m" for t in MEAS]]; meas3 = B1[[f"{t}_3m" for t in MEAS]]; D_infl12 = meas12.std(axis=1); D_infl3 = meas3.std(axis=1)
-DIS = pd.DataFrame({"D_sd (A)": D_sd, "D_res (B)": D_res, "D_infl_12m (C)": D_infl12, "D_infl_3m (C)": D_infl3})
+r_now = RESID.iloc[-1]; strong = r_now[r_now > 0.5].sort_values(ascending=False); weak = r_now[r_now < -0.5].sort_values()
 R.p(TEXT["p03_do_today_s_indicators_agree_ab"])
-R.p(f"A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains {100*exC[0]:.0f}% of their variance): how poorly can today's signals be reconciled by one common state? "
-    "C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.")
+R.p(f"The five block factors share one common state that explains {100*exC[0]:.0f} percent of their joint variance. Its correlation with each block is "
+    f"{', '.join(f'{b} {v:+.2f}' for b, v in LOADC.items())}: {'all five move together' if (LOADC > 0.3).all() else 'the blocks do not all move together'}. "
+    f"The common state stands at {COMMON.iloc[-1]:+.2f} standard deviations ({ordinal(pct_rank(COMMON))} percentile). Relative to what it implies, "
+    f"{'stronger than usual: ' + ', '.join(f'{b} ({v:+.1f} sd)' for b, v in strong.items()) if len(strong) else 'no block is unusually strong'}; "
+    f"{'weaker than usual: ' + ', '.join(f'{b} ({v:+.1f} sd)' for b, v in weak.items()) if len(weak) else 'none unusually weak'}. "
+    f"Disagreement, the root mean square of these residuals, is {D_res.iloc[-1]:.2f}, the {ordinal(pct_rank(D_res))} percentile of its history.")
+R.table(pd.DataFrame({"correlation with common state": LOADC, "current level (z)": PC1.iloc[-1], "implied by common state": PC1.iloc[-1] - r_now, "residual (z)": r_now}),
+        f"Block factors, {PC1.index[-1]:%B %Y}: level, what the common state implies, and the residual")
+DIS = pd.DataFrame({"D_res: residual RMS": D_res, "D_sd: SD across blocks": D_sd, "D_infl_12m: SD across 12m measures": D_infl12, "D_infl_3m: SD across 3m measures": D_infl3})
 R.table(pd.DataFrame({"current": DIS.iloc[-1], "percentile": [pct_rank(DIS[c]) for c in DIS], "median": DIS.median(), "p90": DIS.quantile(.9)}), "Disagreement measures, current value and history")
-fig, axes = plt.subplots(1, 2, figsize=(15, 3.6)); ax = axes[0]; ax.plot(D_res.index, D_res, color="k", lw=1.1, label="B: one-factor residual RMS"); ax.plot(D_sd.index, D_sd, color="tab:blue", lw=.9, alpha=.7, label="A: SD across factors")
-ax.axhline(D_res.median(), color="grey", ls="--", lw=.7); ax.scatter([D_res.index[-1]], [D_res.iloc[-1]], color="red", zorder=5); ax.set_title(f"Disagreement across the seven signals; today at the {ordinal(pct_rank(D_res))} percentile (B)"); ax.legend(frameon=False)
-ax = axes[1]; r_now = RESID.iloc[-1].sort_values(); ax.barh(r_now.index, r_now, color=np.where(r_now > 0, "tab:red", "tab:blue")); ax.axvline(0, color="grey", lw=.6); ax.set_title(f"Residual by signal, {RESID.index[-1]:%b %Y} (z; + = more inflationary than the common state implies)")
-R.fig(fig, "disagreement", "Cross-block disagreement and the current residual by signal.")
+fig, axes = plt.subplots(1, 2, figsize=(15, 3.6), gridspec_kw={"width_ratios": [1.6, 1]}); ax = axes[0]
+ax.plot(COMMON.index, COMMON, color="k", lw=1.1, label="common state across the five blocks"); ax.plot(D_res.index, D_res, color="tab:blue", lw=.9, alpha=.8, label="disagreement (residual RMS)")
+ax.axhline(0, color="grey", lw=.6); ax.scatter([COMMON.index[-1]], [COMMON.iloc[-1]], color="red", zorder=5); ax.legend(frameon=False, ncol=2); ax.set_title("Common state of the five block factors, and disagreement around it (z)")
+ax = axes[1]; rs = r_now.sort_values(); ax.barh(rs.index, rs, color=np.where(rs > 0, "tab:red", "tab:blue")); ax.axvline(0, color="grey", lw=.6)
+ax.set_title(f"Residual by block, {RESID.index[-1]:%b %Y} (z; + = stronger than the common state implies)")
+R.fig(fig, "disagreement", "Common state across the block factors, and the current residual by block.")
 fig, axes = plt.subplots(1, 2, figsize=(15, 3.6)); ax = axes[0]; ax.plot(D_infl12.index, D_infl12, color="k", lw=1, label="12m measures"); ax.plot(D_infl3.index, D_infl3, color="tab:orange", lw=.9, label="3m measures")
-ax.scatter([D_infl12.index[-1]], [D_infl12.iloc[-1]], color="red", zorder=5); ax.set_title("C: SD across alternative inflation measures (pp)"); ax.legend(frameon=False)
+ax.scatter([D_infl12.index[-1]], [D_infl12.iloc[-1]], color="red", zorder=5); ax.set_title("SD across alternative inflation measures (pp)"); ax.legend(frameon=False)
 ax = axes[1]; bsh, dsp = B2["share_gt3_3m"], B2["xs_sd_3m"]; ok = bsh.notna() & dsp.notna(); ax.scatter(bsh[ok], dsp[ok], s=8, color="lightgrey"); ax.scatter(bsh[ok].iloc[-12:], dsp[ok].iloc[-12:], s=14, color="tab:blue", label="last 12 months")
 ax.scatter([bsh.iloc[-1]], [dsp.iloc[-1]], s=50, color="red", label=f"{bsh.index[-1]:%b %Y}"); ax.axvline(bsh.median(), color="grey", ls="--", lw=.6); ax.axhline(dsp.median(), color="grey", ls="--", lw=.6)
-ax.set_xlabel("share of categories above 3% (3m ann.)"); ax.set_ylabel("cross-sectional SD (3m ann.)"); ax.set_title("D: broad rise (right) vs dispersed relative-price moves (top)"); ax.legend(frameon=False)
+ax.set_xlabel("share of categories above 3% (3m ann.)"); ax.set_ylabel("cross-sectional SD (3m ann.)"); ax.set_title("Broad rise (right) vs dispersed relative-price moves (top)"); ax.legend(frameon=False)
 R.fig(fig, "disagreement_inflation", "Disagreement among inflation measures, and breadth versus dispersion.")
 
 # =============================================================================== analogs
 R.h(2, "4. Historical analogs")
-def analogs(V, k=15, exclude_months=24, min_gap=6):
-    v0 = V.iloc[-1]; hist = V[V.index <= V.index[-1] - pd.DateOffset(months=exclude_months)].dropna(); dist = np.sqrt(((hist - v0) ** 2).sum(axis=1)).sort_values(); picked = []
-    for t in dist.index:
+# Cosine similarity between today's vector of five block factors and every past month: does the
+# current profile of shocks look like a past one, regardless of overall scale? The magnitude
+# ratio reports the scale separately.
+def cosine_to_now(V):
+    v0 = V.iloc[-1]; return (V @ v0) / (np.sqrt((V ** 2).sum(axis=1)) * np.sqrt((v0 ** 2).sum()))
+def cos_analogs(V, k=15, exclude_months=24, min_gap=6):
+    v0 = V.iloc[-1]; hist = V[V.index <= V.index[-1] - pd.DateOffset(months=exclude_months)].dropna(); cs = cosine_to_now(pd.concat([hist, V.iloc[[-1]]])).iloc[:-1]
+    picked = []
+    for t in cs.sort_values(ascending=False).index:
         if all(abs((t - q).days) > min_gap * 30 for q in picked): picked.append(t)
         if len(picked) == k: break
-    out = pd.DataFrame({"distance": dist[picked], "core PCE 12m then": pi12.reindex(picked)})
+    out = pd.DataFrame({"cosine": cs[picked], "magnitude ratio": np.sqrt((hist.loc[picked] ** 2).sum(axis=1)) / np.sqrt((v0 ** 2).sum()), "core PCE 12m then": pi12.reindex(picked)})
     for h in (3, 6, 12): out[f"next {h}m"] = Y[f"pi_fut_{h}"].reindex(picked)
     out["change 12m ahead"] = out["next 12m"] - out["core PCE 12m then"]; out["D_res then"] = D_res.reindex(picked); out.index = [d.strftime("%Y-%m") for d in out.index]; return out
-A1 = analogs(Fz7); A2 = analogs(RESID); a1 = A1["change 12m ahead"]; outc = np.where(a1 < -0.5, "sustained disinflation", np.where(a1 > 0.5, "reacceleration", "mixed/flat"))
+COS = cosine_to_now(PC1); A1 = cos_analogs(PC1); A2 = cos_analogs(RESID); a1 = A1["change 12m ahead"]
+outc = np.where(a1 < -0.5, "sustained disinflation", np.where(a1 > 0.5, "reacceleration", "mixed/flat"))
 R.p(TEXT["p04_when_in_the_past_did_the_confi"])
-R.p(f"Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is {A1['next 12m'].median():.2f} "
-    f"(median change {a1.median():+.2f} pp, decelerating in {(a1 < 0).mean():.0%}). Matching on the pattern of disagreement instead gives {', '.join(A2.index[:5])} (median change {A2['change 12m ahead'].median():+.2f}). Not causal.")
-R.table(A1, f"Analogs on the factor vector, origin {T:%b %Y}")
+R.p(f"Cosine similarity between today's vector of five block factors ({', '.join(f'{b} {v:+.1f}' for b, v in PC1.iloc[-1].items())}) and every past month, excluding the last 24 months and keeping at most one match per six-month window. "
+    f"The closest profiles are {', '.join(A1.index[:5])} (cosine {', '.join(f'{v:.2f}' for v in A1['cosine'].iloc[:5])}). Across the 15 analogs the median subsequent 12m core PCE is {A1['next 12m'].median():.2f} "
+    f"(median change {a1.median():+.2f} pp, decelerating in {(a1 < 0).mean():.0%}). Matching on the pattern of residuals instead, which asks when the blocks last disagreed in the same way, gives {', '.join(A2.index[:5])} "
+    f"(median change {A2['change 12m ahead'].median():+.2f}). Not causal.")
+fig, ax = plt.subplots(figsize=(15, 3.4)); ax.plot(COS.index, COS, color="k", lw=.9); ax.axhline(0, color="grey", lw=.6)
+ax.axvspan(COS.index[-1] - pd.DateOffset(months=24), COS.index[-1], color="grey", alpha=.15, lw=0)
+for d in pd.to_datetime(A1.index[:8]): ax.scatter([d], [COS.loc[d]], color="red", s=22, zorder=5); ax.annotate(d.strftime("%y-%m"), (d, COS.loc[d]), textcoords="offset points", xytext=(0, 5), ha="center", fontsize=7)
+ax.set_ylim(-1, 1.05); ax.set_title(f"Cosine similarity of each month's block-factor profile to {COS.index[-1]:%b %Y}; red = closest analogs, shaded = excluded window")
+R.fig(fig, "analogs", "Cosine similarity of the historical block-factor profile to today's.")
+R.table(A1, f"Analogs by cosine similarity of the block-factor profile, origin {T:%b %Y}")
 
 # =============================================================================== supply vs demand
 R.h(2, "5. Supply-like versus demand-like episodes and disagreement")
@@ -744,7 +776,7 @@ qa("9. Are expectations a problem", [
    f"Levels: Michigan 1y {exp_now.loc['mich_1y', 'latest']:.1f} ({ordinal(exp_now.loc['mich_1y', 'percentile'])} pct), SPF 4q {exp_now.loc['spf_cpi_4q', 'latest']:.1f} ({ordinal(exp_now.loc['spf_cpi_4q', 'percentile'])}), 5y breakeven {exp_now.loc['bei_5y', 'latest']:.2f} ({ordinal(exp_now.loc['bei_5y', 'percentile'])}), 5y5y {exp_now.loc['bei_5y5y', 'latest']:.2f} ({ordinal(exp_now.loc['bei_5y5y', 'percentile'])}), SPF 10y {exp_now.loc['spf_cpi_10y', 'latest']:.1f}.",
    f"Disagreement: SPF cross-sectional SD {exp_now.loc['spf_cpi_4q_sd', 'latest']:.2f} ({ordinal(exp_now.loc['spf_cpi_4q_sd', 'percentile'])} pct); households minus professionals {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp ({ordinal(exp_now.loc['mich_less_spf', 'percentile'])}).",
    f"Predictive content: SPF dispersion as a single addition to core PCE 12m, rel RMSFE {RACE.loc['SPF dispersion', 'rel RMSFE 12m']:.2f} (t {RACE.loc['SPF dispersion', 't 12m']:+.1f}); Michigan 1y {RACE.loc['Michigan 1y', 'rel RMSFE 12m']:.2f} (t {RACE.loc['Michigan 1y', 't 12m']:+.1f}). "
-   f"The block is the {'most' if RESID.iloc[-1].idxmax() == 'B_exp' else 'not the most'} inflationary residual in the disagreement decomposition ({RESID.iloc[-1]['B_exp']:+.2f})."])
+   f"The block is the {'most' if RESID.iloc[-1].idxmax() == 'exp' else 'not the most'} inflationary residual in the disagreement decomposition ({RESID.iloc[-1]['exp']:+.2f})."])
 qa("10. What drives the current forecast", [
    f"12m projection {FC.loc['forecast', '12m']:.1f} against a current 12m rate of {D.loc[T, 'pi12']:.1f}; the block factors account for {BLOCK_GAIN['12m']:+.2f} pp of it relative to the global-only model.",
    f"Over the last {len(NEWS)} months, news revised this projection by {NEWS.sum().sum():+.2f} pp. Pushing up: {pos_part}; pushing down: {neg_part}."])
@@ -763,13 +795,13 @@ qa("14. Implications for the Fed debate", [
    f"Projected core PCE stays {'above' if h12['forecast'] > 2 else 'at or below'} 2% at all horizons ({fc_str}); projected change {h12['change']:+.2f} pp over 12m (time-series benchmark {NOW.loc['M1 time series', '12m'] - h12['current']:+.2f}).",
    f"Evidence for deceleration: {n_dec}/{len(MEAS)} measures decelerating, P(lower in 12m) {p12:.0%}, analogs decelerating {(a1 < 0).mean():.0%}: {'strong' if (p12 > 0.65 and n_dec >= 0.7*len(MEAS)) else 'moderate' if p12 > 0.5 else 'weak'}.",
    f"Uncertainty: 12m pseudo-out-of-sample RMSE {OOS.loc['M3 global + block', '12m']:.2f} pp; block disagreement at the {ordinal(pct_rank(D_res))} percentile.",
-   f"Risks implied by the outputs: persistence {'high' if h12['forecast'] > 2.75 else 'moderate' if h12['forecast'] > 2.25 else 'low'} (forecast level); reacceleration {'elevated' if (ev_hist['reaccelerated within 6m'].mean() > 0.5 or z_now['B_exp'] > 1) else 'moderate'} (expectations residual {RESID.iloc[-1]['B_exp']:+.2f}, historical reacceleration frequency {ev_hist['reaccelerated within 6m'].mean():.0%}); "
+   f"Risks implied by the outputs: persistence {'high' if h12['forecast'] > 2.75 else 'moderate' if h12['forecast'] > 2.25 else 'low'} (forecast level); reacceleration {'elevated' if (ev_hist['reaccelerated within 6m'].mean() > 0.5 or z_now['B_exp'] > 1) else 'moderate'} (expectations residual {RESID.iloc[-1]['exp']:+.2f}, historical reacceleration frequency {ev_hist['reaccelerated within 6m'].mean():.0%}); "
    f"premature tightening {'notable' if pctF['B_dem'] < 30 else 'limited'} (demand factor at the {ordinal(pctF['B_dem'])} percentile)."])
 qa("15. Warsh, Waller, Kashkari", [
    f"Warsh (inflation broad, policy not restrictive): breadth at 12m at the {ordinal(pct_rank(b12s))} percentile ({100*b12s.iloc[-1]:.0f}% above 3%) and financial conditions at the {ordinal(pctF['B_fin'])} percentile on the loose side, so {'both legs' if pct_rank(b12s) > 60 and pctF['B_fin'] > 60 else 'the financial leg' if pctF['B_fin'] > 60 else 'the breadth leg' if pct_rank(b12s) > 60 else 'neither leg'} of the argument find support; demand at the {ordinal(pctF['B_dem'])} percentile does not.",
    f"Waller (underlying inflation declining): {n_dec}/{len(MEAS)} measures show 3m below 12m; the model projects {h12['change']:+.2f} pp over 12m with P(lower) {p12:.0%}, so the momentum is {'confirmed' if p12 > 0.6 else 'only partly confirmed'}; comparable gaps were turning points {ev_hist['turning point'].mean():.0%} of the time.",
-   f"Kashkari (entrenchment from waiting): the 12m forecast stays at {h12['forecast']:.1f}%, the expectations block is the most inflationary residual ({RESID.iloc[-1]['B_exp']:+.2f}) with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals, and analogs reaccelerated in {np.mean(outc == 'reacceleration'):.0%} of cases: "
-   f"{'supports' if (h12['forecast'] > 2.75 and RESID.iloc[-1]['B_exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
+   f"Kashkari (entrenchment from waiting): the 12m forecast stays at {h12['forecast']:.1f}%, the expectations block is the most inflationary residual ({RESID.iloc[-1]['exp']:+.2f}) with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals, and analogs reaccelerated in {np.mean(outc == 'reacceleration'):.0%} of cases: "
+   f"{'supports' if (h12['forecast'] > 2.75 and RESID.iloc[-1]['exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
 R.p(TEXT["p06_caveat_latest_vintage_data_an"])
 R.summary([
     f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",

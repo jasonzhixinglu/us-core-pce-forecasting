@@ -130,6 +130,10 @@ def oos_forecast(D, target, cols, h, start=OOS_START):
         if not np.isnan(x).any(): fc[t] = b[0] + x @ b[1:]
     return fc
 def vname(c): return c[1] if isinstance(c, tuple) else c
+META = []
+def reg(block, short, name, source, transform): META.append(dict(block=block, shorthand=short, indicator=name, source=source, transformation=transform))
+def meta_table(block):
+    d = pd.DataFrame([m_ for m_ in META if m_["block"] == block]).drop(columns="block").set_index("shorthand"); return d
 
 # =============================================================================== data
 FRED_IDS = {
@@ -186,7 +190,7 @@ R.summary_slot()
 R.h(2, "Introduction")
 R.p("The question is what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and whether today's configuration resembles past episodes. "
     "The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.")
-R.p("All of these are treated as potentially useful signals for future inflation rather than sorted into 'measures of underlying inflation' and 'predictors'. A measure of underlying inflation is useful partly because it extracts the persistent, forecast-relevant component of current inflation, so the two roles are not distinct.")
+R.p(TEXT["p01_all_of_these_are_treated_as_po"])
 R.p("The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. "
     "The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.")
 R.note("Data are latest-vintage FRED series (CSV endpoint, no key). Two inputs are not on FRED and are flagged where used: the Survey of Professional Forecasters individual CPI forecasts (Philadelphia Fed) and the excess bond premium (Federal Reserve). "
@@ -198,11 +202,11 @@ R.p("For each block the same diagnostic is shown: the variables are standardized
     "the first component over time as a one-line summary of the block, and the residuals from the one-factor fit as a heatmap (whether recent months look different from history).")
 # ------------------------------------------------------------------ block EDA
 import re
-GROUPS = {"infl": [("momentum", r"less|_d\d+_|accel"), ("persistent-measure level", r"sticky|median|trim"), ("flexible-price level", r"flex"), ("headline/core level", r".")],
+GROUPS = {"infl": [("short-horizon rate (1m/3m)", r"_(1|3)m$"), ("6m rate", r"_6m$"), ("12m rate", r"_12m$")],
           "dist": [("breadth", r"share_gt"), ("breadth momentum", r"share_(accel|decel)"), ("dispersion", r"xs_(sd|iqr|p90|skew)|upper_tail"), ("central tendency", r"xs_median")],
-          "exp": [("dispersion", r"_sd|_iqr"), ("household-professional/market gaps", r"mich_less|spf_less"), ("term structure", r"less"), ("households", r"mich"), ("professionals", r"spf"), ("model-based", r"clev"), ("markets", r"bei")],
+          "exp": [("dispersion", r"_sd|_iqr"), ("households", r"mich"), ("professionals", r"spf"), ("model-based", r"clev"), ("markets", r"bei")],
           "dem": [("wages", r"ahe|eci|comp"), ("labor market", r"unrate|claims|payroll|vu_|quits"), ("activity", r"real_|ip_|capu|gdp"), ("sentiment", r"sentiment")],
-          "fin": [("risk pricing", r"vix|baa|gz|ebp|term_premium|mortgage"), ("conditions indexes", r"nfci"), ("rates", r"fedfunds|dgs|term_2s10s|real_10y"), ("asset prices", r"equity|usd|oil|ppi"), ("credit supply", r"sloos")]}
+          "fin": [("risk pricing", r"vix|baa|gz|ebp|term_premium"), ("conditions indexes", r"nfci"), ("rates", r"fedfunds|dgs|real_10y|mortgage"), ("asset prices", r"equity|usd|oil|ppi"), ("credit supply", r"sloos")]}
 def group_of(block, v):
     for g, rx in GROUPS[block]:
         if re.search(rx, v): return g
@@ -216,19 +220,7 @@ def describe_factor(block, l, k=8):
     return f"aligned positively with {side(pos)}; inverted: {side(neg)}"
 
 BPC = {}; DESC = {}
-READING = {   # one-line interpretations, written against the estimated loadings; the data-driven description printed alongside is the check
- ("infl", 1): "Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.",
- ("infl", 2): "Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).",
- ("dist", 1): "Reading: breadth and central tendency of the price-change distribution, how many categories are rising fast; a broad-inflation factor.",
- ("dist", 2): "Reading: two-sided dispersion (IQR, share decelerating) against upper-tail concentration and skewness; separates wide relative-price dispersion from a few categories spiking.",
- ("exp", 1): "Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.",
- ("exp", 2): "Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.",
- ("dem", 1): "Reading: output and employment growth, the business-cycle factor.",
- ("dem", 2): "Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.",
- ("fin", 1): "Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.",
- ("fin", 2): "Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.",
- "G1": "Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.",
- "G2": "Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state."}
+sys.path.insert(0, str(HERE)); from text import TEXT, READING   # editable prose lives in text.py
 def block_eda(name, df, ref, flip=False, title=""):
     """Standardize over the panel window, PCA; figure: scree and PC1/PC2 paths; correlations with PC1 and one-factor residuals; correlations with PC2 and two-factor residuals."""
     Zb = zscore(df[df.index >= START].dropna(how="all")); Zb = Zb.loc[:, Zb.notna().mean() > 0.5]
@@ -265,28 +257,24 @@ def block_eda(name, df, ref, flip=False, title=""):
         + ", ".join(f"{vname(c)} ({v:+.1f} sd)" for c, v in top_res.items()) + ".")
 
 # ------------------------------------------------------------------ block 1: inflation measures
-def inflation_set(px, tag, kind="index"):
-    if kind == "index": p = {h: ann(px, h) for h in (1, 3, 6, 12)}
-    else: m1, m12 = px; p = {1: m1, 3: m1.rolling(3).mean(), 6: m1.rolling(6).mean(), 12: m12}
-    out = {f"{tag}_{h}m": p[h] for h in (1, 3, 6, 12)}
-    out[f"{tag}_3m_less_12m"] = p[3] - p[12]; out[f"{tag}_6m_less_12m"] = p[6] - p[12]
-    for k in (3, 6, 12): out[f"{tag}_d{k}_12m"] = p[12] - p[12].shift(k)
-    out[f"{tag}_accel"] = p[3] - p[3].shift(3); return out
 B1 = {}
-for sid, tag in [("CPIAUCSL", "cpi"), ("CPILFESL", "cpi_core"), ("PCEPI", "pce"), ("PCEPILFE", "pce_core"), ("CUSR0000SASLE", "cpi_svc_xe"), ("DSERRG3M086SBEA", "pce_svc")]:
-    B1.update(inflation_set(m(sid), tag))
-for m1, m12, tag in [("MEDCPIM158SFRBCLE", "MEDCPIM159SFRBCLE", "cpi_median"), ("TRMMEANCPIM158SFRBCLE", "TRMMEANCPIM159SFRBCLE", "cpi_trim"), ("PCETRIM1M158SFRBDAL", "PCETRIM12M159SFRBDAL", "pce_trim"),
-                     ("STICKCPIM157SFRBATL", "STICKCPIM159SFRBATL", "cpi_sticky"), ("CORESTICKM157SFRBATL", "CORESTICKM159SFRBATL", "cpi_core_sticky"), ("FLEXCPIM157SFRBATL", "FLEXCPIM159SFRBATL", "cpi_flex"),
-                     ("COREFLEXCPIM157SFRBATL", "COREFLEXCPIM159SFRBATL", "cpi_core_flex")]:
-    B1.update(inflation_set((m(m1), m(m12)), tag, kind="rates"))
-B1 = pd.DataFrame(B1); B1 = B1[[c for c in B1 if not (c.startswith(("cpi_svc_xe", "pce_svc", "cpi_core_sticky", "cpi_core_flex")) and not c.endswith(("_3m", "_12m")))]]
+IDX = [("CPIAUCSL", "cpi", "CPI, all items", "BLS via FRED"), ("CPILFESL", "cpi_core", "CPI ex food and energy", "BLS via FRED"), ("PCEPI", "pce", "PCE price index", "BEA via FRED"),
+       ("PCEPILFE", "pce_core", "PCE ex food and energy", "BEA via FRED"), ("CUSR0000SASLE", "cpi_svc_xe", "CPI services ex energy services", "BLS via FRED"), ("DSERRG3M086SBEA", "pce_svc", "PCE services price index", "BEA via FRED")]
+RATES = [("MEDCPIM158SFRBCLE", "MEDCPIM159SFRBCLE", "cpi_median", "Median CPI", "Cleveland Fed via FRED"), ("TRMMEANCPIM158SFRBCLE", "TRMMEANCPIM159SFRBCLE", "cpi_trim", "16% trimmed-mean CPI", "Cleveland Fed via FRED"),
+         ("PCETRIM1M158SFRBDAL", "PCETRIM12M159SFRBDAL", "pce_trim", "Trimmed-mean PCE", "Dallas Fed via FRED"), ("STICKCPIM157SFRBATL", "STICKCPIM159SFRBATL", "cpi_sticky", "Sticky-price CPI", "Atlanta Fed via FRED"),
+         ("CORESTICKM157SFRBATL", "CORESTICKM159SFRBATL", "cpi_core_sticky", "Core sticky-price CPI", "Atlanta Fed via FRED"), ("FLEXCPIM157SFRBATL", "FLEXCPIM159SFRBATL", "cpi_flex", "Flexible-price CPI", "Atlanta Fed via FRED"),
+         ("COREFLEXCPIM157SFRBATL", "COREFLEXCPIM159SFRBATL", "cpi_core_flex", "Core flexible-price CPI", "Atlanta Fed via FRED")]
+for sid, tag, name, src in IDX:
+    for h in (1, 3, 6, 12): B1[f"{tag}_{h}m"] = ann(m(sid), h)
+    reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "annualized 1/3/6/12-month log change of the index")
+for m1, m12, tag, name, src in RATES:
+    r1, r12 = m(m1), m(m12); B1[f"{tag}_1m"] = r1; B1[f"{tag}_3m"] = r1.rolling(3).mean(); B1[f"{tag}_6m"] = r1.rolling(6).mean(); B1[f"{tag}_12m"] = r12
+    reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate")
+B1 = pd.DataFrame(B1)
 R.h(3, "Block 1: inflation measures")
-R.table(pd.DataFrame([["CPI, core CPI, PCE, core PCE, CPI services ex energy, PCE services", "BLS, BEA (index levels)", "annualized 1/3/6/12-month log changes"],
-                      ["Median CPI, 16% trimmed-mean CPI", "Cleveland Fed (1-month annualized and 12-month rates)", "3m and 6m as rolling means of the 1-month rate"],
-                      ["Trimmed-mean PCE", "Dallas Fed", "as above"], ["Sticky, core sticky, flexible, core flexible CPI", "Atlanta Fed", "as above"],
-                      ["Momentum for every measure", "derived", "3m minus 12m, 6m minus 12m, change in the 12m rate over 3/6/12 months, acceleration (3m rate minus its value three months earlier)"]],
-                     columns=["Indicators", "Source", "Transformation"]).set_index("Indicators"), "Block 1 contents", small=True)
-R.p("For the principal indexes the multi-horizon rates capture the level of inflation and the momentum terms whether it is accelerating or decelerating; the median, trimmed, sticky and flexible measures add alternative filters of the same aggregate.")
+R.table(meta_table(1), "Block 1 indicators", small=True)
+R.p("Only levels at several horizons enter the block. Momentum and acceleration (3m minus 12m, changes in the 12m rate) are deliberately not included as separate indicators: they are linear combinations of what is already in the panel, and the PCA recovers them itself as contrasts, "
+    "with opposite loadings on short- and long-horizon rates. The forecasting regressions in section 3 use momentum terms computed directly from core PCE.")
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")
 
 # ------------------------------------------------------------------ block 2: distribution
@@ -302,58 +290,69 @@ def breadth_stats(P, h, min_n=20, weights=None):
         for th in (0, 2, 3, 4, 5): out[f"wshare_gt{th}"] = (pi > th).mul(w, axis=1).sum(axis=1) / ws
     out.columns = [f"{c}_{h}m" if c != "n_cats" else c for c in out.columns]; return out.where(ok)
 B2 = pd.concat([breadth_stats(P, h, weights=WEIGHTS).drop(columns="n_cats") for h in (3, 6, 12)], axis=1); B2.insert(0, "n_cats", breadth_stats(P, 12)["n_cats"])
+for short, name, tr in [("share_gt{0,2,3,4,5}", "share of categories with inflation above 0/2/3/4/5 percent", "count divided by categories available"), ("share_accel", "share of categories accelerating", "h-month rate above the 12-month rate (at h = 12: above the 12-month rate a year earlier)"),
+                        ("share_decel", "share of categories decelerating", "as above, below"), ("xs_sd", "cross-sectional standard deviation", "across categories"), ("xs_iqr", "interquartile range", "75th minus 25th percentile across categories"),
+                        ("xs_p90_p10", "90-10 spread", "90th minus 10th percentile"), ("xs_skew", "cross-sectional skewness", ""), ("xs_median", "median category inflation", ""), ("upper_tail_share", "upper-tail share", "share of the sum of absolute category inflation coming from the top decile")]:
+    reg(2, f"{short}_{{3,6,12}}m", name, "34 CPI categories, BLS via FRED", (tr + "; " if tr else "") + "computed on annualized 3/6/12-month category inflation")
 R.h(3, "Block 2: price-change distribution")
-R.table(pd.DataFrame([["Food (7)", "cereals; meats, poultry, fish, eggs; dairy; fruits and vegetables; other food at home; food away from home; alcohol"],
-                      ["Energy (4)", "gasoline; fuel oil; electricity; utility gas"],
-                      ["Core goods (12)", "men's, women's and infants' apparel; footwear; new and used vehicles; vehicle parts; medical commodities; household furnishings; tobacco; recreation commodities; educational books"],
-                      ["Services (11)", "rent; owners' equivalent rent; lodging away from home; water and sewer; professional medical and hospital services; vehicle maintenance; public transportation; tuition and childcare; personal care; other services"],
-                      ["Statistics", "shares above 0/2/3/4/5 percent, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share; each at 3, 6 and 12 months"]],
-                     columns=["Group", "Categories"]).set_index("Group"), "Block 2 contents: 34 CPI expenditure categories (FRED, seasonally adjusted)", small=True)
+R.table(pd.DataFrame([[g, c] for g, c in [("Food (7)", "cereals; meats, poultry, fish, eggs; dairy; fruits and vegetables; other food at home; food away from home; alcohol"), ("Energy (4)", "gasoline; fuel oil; electricity; utility gas"),
+    ("Core goods (12)", "men's, women's and infants' apparel; footwear; new and used vehicles; vehicle parts; medical commodities; household furnishings; tobacco; recreation commodities; educational books"),
+    ("Services (11)", "rent; owners' equivalent rent; lodging away from home; water and sewer; professional medical and hospital services; vehicle maintenance; public transportation; tuition and childcare; personal care; other services")]],
+    columns=["Group", "Categories"]).set_index("Group"), "Block 2 universe: 34 CPI expenditure categories (FRED, seasonally adjusted)", small=True)
+R.table(meta_table(2), "Block 2 indicators", small=True)
 R.p(f"Cross-sectional statistics of annualized 3/6/12-month inflation across {P.shape[1]} CPI expenditure categories from FRED (SA), selected so that no category nests another; "
     "unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. "
     "Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.")
 block_eda("dist", B2.drop(columns="n_cats"), "share_gt3_12m", title="Block 2, price-change distribution")
 
 # ------------------------------------------------------------------ block 3: expectations
-E = pd.DataFrame({"mich_1y": m("MICH"), "clev_1y": m("EXPINF1YR"), "clev_10y": m("EXPINF10YR"), "bei_5y": m("T5YIE"), "bei_10y": m("T10YIE"), "bei_5y5y": m("T5YIFR")}).join(SPF_Q.drop(columns="spf_n").pipe(q_to_m), how="outer")
-E["mich_less_spf"] = E["mich_1y"] - E["spf_cpi_4q"]; E["mich_less_bei5"] = E["mich_1y"] - E["bei_5y"]; E["spf_less_clev1"] = E["spf_cpi_4q"] - E["clev_1y"]
-E["mich_1y_less_clev10"] = E["mich_1y"] - E["clev_10y"]; E["spf_4q_less_10y"] = E["spf_cpi_4q"] - E["spf_cpi_10y"]; E["bei_5y_less_5y5y"] = E["bei_5y"] - E["bei_5y5y"]; E["clev_1y_less_10y"] = E["clev_1y"] - E["clev_10y"]
-B3 = E
+B3 = pd.DataFrame({"mich_1y": m("MICH"), "clev_1y": m("EXPINF1YR"), "clev_10y": m("EXPINF10YR"), "bei_5y": m("T5YIE"), "bei_10y": m("T10YIE"), "bei_5y5y": m("T5YIFR")}).join(SPF_Q.drop(columns="spf_n").pipe(q_to_m), how="outer")
+MICH_LESS_SPF = B3["mich_1y"] - B3["spf_cpi_4q"]     # used in the answers, not in the block
+for short, name, src, tr in [("mich_1y", "Michigan 1-year expected inflation, median", "Michigan survey via FRED", "level, percent"), ("clev_1y", "Cleveland Fed 1-year expected inflation", "Cleveland Fed via FRED", "level"), ("clev_10y", "Cleveland Fed 10-year expected inflation", "Cleveland Fed via FRED", "level"),
+                             ("bei_5y", "5-year breakeven inflation", "Treasury via FRED", "monthly mean of daily"), ("bei_10y", "10-year breakeven", "Treasury via FRED", "monthly mean"), ("bei_5y5y", "5y5y forward breakeven", "Treasury via FRED", "monthly mean"),
+                             ("spf_cpi_4q", "SPF median CPI forecast, next four quarters", "Philadelphia Fed SPF (not on FRED)", "mean of the individual CPI2-CPI5 forecasts, median across forecasters; quarterly spread to months"),
+                             ("spf_cpi_4q_iqr", "SPF cross-sectional IQR of the 4-quarter forecast", "Philadelphia Fed SPF", "75th minus 25th percentile across forecasters"), ("spf_cpi_4q_sd", "SPF cross-sectional SD of the 4-quarter forecast", "Philadelphia Fed SPF", "across forecasters"),
+                             ("spf_cpi_10y", "SPF median 10-year CPI forecast", "Philadelphia Fed SPF", "quarterly spread to months")]:
+    reg(3, short, name, src, tr)
 R.h(3, "Block 3: inflation expectations")
-R.table(pd.DataFrame([["Households", "Michigan 1-year median expectation"], ["Professionals", "SPF median 4-quarter-ahead CPI; SPF 10-year CPI (Philadelphia Fed)"], ["Model-based", "Cleveland Fed 1-year and 10-year expected inflation"],
-                      ["Markets", "5-year, 10-year and 5y5y forward breakevens"], ["Disagreement", "SPF cross-sectional IQR and SD of the 4-quarter forecast; households minus professionals; households minus markets; professionals minus the Cleveland model"],
-                      ["Term structure", "1-year minus 10-year for Michigan/Cleveland, SPF 4q minus 10y, 5y minus 5y5y breakevens"]],
-                     columns=["Group", "Indicators"]).set_index("Group"), "Block 3 contents", small=True)
-R.p("Levels of expected inflation, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI median and SPF 10y, 5y/10y/5y5y breakevens; disagreement as the SPF cross-sectional IQR and SD and as spreads between households, professionals, the Cleveland model and markets; near minus long horizons. "
-    "Michigan 5-10y expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.")
+R.table(meta_table(3), "Block 3 indicators", small=True)
+R.p("Levels of expected inflation from households, professionals, a model and markets at short and long horizons, plus forecaster dispersion. Spreads between sources and horizons are not included as separate indicators; the PCA forms them as contrasts. "
+    "Michigan 5-10 year expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.")
 block_eda("exp", B3, "mich_1y", title="Block 3, expectations")
 
 # ------------------------------------------------------------------ block 4: demand and labor
-B4 = pd.DataFrame({"unrate": m("UNRATE"), "unrate_d12": m("UNRATE") - m("UNRATE").shift(12), "payrolls_3m": ann(m("PAYEMS"), 3), "payrolls_12m": ann(m("PAYEMS"), 12), "claims_log": np.log(m("ICSA")),
-                   "claims_d3_log": dlog(m("ICSA"), 3), "vu_ratio": m("JTSJOL") / m("UNEMPLOY"), "quits": m("JTSQUR"), "ahe_12m": ann(m("AHETPI"), 12), "ahe_3m": ann(m("AHETPI"), 3),
+B4 = pd.DataFrame({"unrate": m("UNRATE"), "payrolls_3m": ann(m("PAYEMS"), 3), "payrolls_12m": ann(m("PAYEMS"), 12), "claims_log": np.log(m("ICSA")),
+                   "vu_ratio": m("JTSJOL") / m("UNEMPLOY"), "quits": m("JTSQUR"), "ahe_12m": ann(m("AHETPI"), 12), "ahe_3m": ann(m("AHETPI"), 3),
                    "eci_wages_yoy": q_to_m(RAW["ECIWAG"].pct_change(4) * 100), "comp_12m": ann(m("W209RC1"), 12), "real_pce_6m": ann(m("DPCERA3M086SBEA"), 6), "real_pce_12m": ann(m("DPCERA3M086SBEA"), 12),
                    "real_retail_6m": ann(m("RRSFS"), 6), "ip_6m": ann(m("INDPRO"), 6), "ip_12m": ann(m("INDPRO"), 12), "capu": m("TCU"), "real_inv_yoy": q_to_m(RAW["GPDIC1"].pct_change(4) * 100),
                    "gdp_yoy": q_to_m(RAW["GDPC1"].pct_change(4) * 100), "sentiment": m("UMCSENT")})
+for short, name, src, tr in [("unrate", "Unemployment rate", "BLS via FRED", "level, percent"), ("payrolls_3m / payrolls_12m", "Nonfarm payrolls", "BLS via FRED", "annualized 3- and 12-month log growth"), ("claims_log", "Initial claims", "DOL via FRED", "log of the monthly mean of weekly claims"),
+                             ("vu_ratio", "Job openings to unemployed", "BLS JOLTS via FRED", "ratio"), ("quits", "Quits rate", "BLS JOLTS via FRED", "level, percent"), ("ahe_3m / ahe_12m", "Average hourly earnings, production workers", "BLS via FRED", "annualized 3- and 12-month log growth"),
+                             ("eci_wages_yoy", "ECI wages and salaries", "BLS via FRED", "year-on-year percent, quarterly spread to months"), ("comp_12m", "Compensation of employees", "BEA via FRED", "12-month log growth"), ("real_pce_6m / real_pce_12m", "Real PCE", "BEA via FRED", "annualized 6- and 12-month log growth"),
+                             ("real_retail_6m", "Real retail sales", "Census via FRED", "annualized 6-month log growth"), ("ip_6m / ip_12m", "Industrial production", "Fed via FRED", "annualized 6- and 12-month log growth"), ("capu", "Capacity utilization", "Fed via FRED", "level, percent"),
+                             ("real_inv_yoy", "Real gross private domestic investment", "BEA via FRED", "year-on-year, quarterly spread to months"), ("gdp_yoy", "Real GDP", "BEA via FRED", "year-on-year, quarterly spread to months"), ("sentiment", "Michigan consumer sentiment", "Michigan via FRED", "level")]:
+    reg(4, short, name, src, tr)
 R.h(3, "Block 4: demand and labor")
-R.table(pd.DataFrame([["Labor market", "unemployment rate and its 12-month change; payroll growth (3m, 12m); initial claims (log level, 3-month change); job openings to unemployed; quits rate"],
-                      ["Wages", "average hourly earnings (3m, 12m); ECI wages and salaries (yoy, quarterly); compensation of employees (12m)"],
-                      ["Activity and demand", "real PCE (6m, 12m); real retail sales (6m); industrial production (6m, 12m); capacity utilization; real private investment (yoy, quarterly); real GDP (yoy, quarterly); Michigan sentiment"]],
-                     columns=["Group", "Indicators"]).set_index("Group"), "Block 4 contents", small=True)
-R.p("Rates in levels (and 12-month changes for unemployment), quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. "
+R.table(meta_table(4), "Block 4 indicators", small=True)
+R.p("Rates in levels, quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. "
     "Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.")
 block_eda("dem", B4, "payrolls_12m", title="Block 4, demand and labor")
 
 # ------------------------------------------------------------------ block 5: financial
 usd_old, usd_new = m("TWEXBMTH"), m("DTWEXBGS"); ov = usd_old.index.intersection(usd_new.index); usd = pd.concat([usd_old[usd_old.index < ov[0]] * (usd_new[ov] / usd_old[ov]).mean(), usd_new])
-B5 = pd.DataFrame({"fedfunds": m("FEDFUNDS"), "dgs2": m("DGS2"), "dgs10": m("DGS10"), "term_2s10s": m("DGS10") - m("DGS2"), "fedfunds_d12": m("FEDFUNDS") - m("FEDFUNDS").shift(12), "real_10y_tips": m("DFII10"),
-                   "real_10y_clev": m("DGS10") - m("EXPINF10YR"), "nfci": m("NFCI"), "anfci": m("ANFCI"), "vix": m("VIXCLS"), "baa_spread": m("BAA10Y"), "gz_spread": EBP["gz_spread"], "ebp": EBP["ebp"],
+B5 = pd.DataFrame({"fedfunds": m("FEDFUNDS"), "dgs2": m("DGS2"), "dgs10": m("DGS10"), "real_10y_tips": m("DFII10"), "real_10y_clev": m("DGS10") - m("EXPINF10YR"), "nfci": m("NFCI"), "anfci": m("ANFCI"), "vix": m("VIXCLS"), "baa_spread": m("BAA10Y"), "gz_spread": EBP["gz_spread"], "ebp": EBP["ebp"],
                    "term_premium_10y": m("THREEFYTP10"), "equity_12m_ret": dlog(m("NASDAQCOM"), 12), "equity_3m_ret": dlog(m("NASDAQCOM"), 3), "usd_12m": dlog(usd, 12), "oil_12m": dlog(m("WTISPLC"), 12),
-                   "oil_3m": dlog(m("WTISPLC"), 3), "ppi_comm_12m": dlog(m("PPIACO"), 12), "sloos_ci": q_to_m(RAW["DRTSCILM"]), "mortgage_spread": m("MORTGAGE30US") - m("DGS10")})
+                   "oil_3m": dlog(m("WTISPLC"), 3), "ppi_comm_12m": dlog(m("PPIACO"), 12), "sloos_ci": q_to_m(RAW["DRTSCILM"]), "mortgage30": m("MORTGAGE30US")})
+for short, name, src, tr in [("fedfunds", "Effective federal funds rate", "Fed via FRED", "monthly mean, percent"), ("dgs2 / dgs10", "2- and 10-year Treasury yields", "Treasury via FRED", "monthly mean of daily"), ("real_10y_tips", "10-year TIPS yield", "Treasury via FRED", "monthly mean"),
+                             ("real_10y_clev", "10-year real rate", "derived", "10-year yield minus Cleveland Fed 10-year expected inflation (the expectation is in block 3, so this is not a within-block difference)"),
+                             ("nfci / anfci", "Chicago Fed NFCI and adjusted NFCI", "Chicago Fed via FRED", "monthly mean; positive = tighter"), ("vix", "VIX", "Cboe via FRED", "monthly mean"), ("baa_spread", "Moody's Baa yield minus 10-year Treasury", "FRED (published spread)", "monthly mean"),
+                             ("gz_spread / ebp", "Gilchrist-Zakrajsek spread and excess bond premium", "Federal Reserve (not on FRED)", "level"), ("term_premium_10y", "Kim-Wright 10-year term premium", "Fed via FRED", "monthly mean"),
+                             ("equity_3m_ret / equity_12m_ret", "Nasdaq composite", "FRED", "3- and 12-month log return (the S&P 500 on FRED covers ten years only)"), ("usd_12m", "Broad dollar index", "Fed via FRED", "12-month log change; 1973-2019 and 2006- indexes spliced at the overlap"),
+                             ("oil_3m / oil_12m", "WTI crude oil", "FRED", "3- and 12-month log change"), ("ppi_comm_12m", "PPI all commodities", "BLS via FRED", "12-month log change"), ("sloos_ci", "SLOOS net share tightening C&I standards", "Fed via FRED", "quarterly spread to months"),
+                             ("mortgage30", "30-year mortgage rate", "Freddie Mac via FRED", "monthly mean")]:
+    reg(5, short, name, src, tr)
 R.h(3, "Block 5: financial conditions and risk pricing")
-R.table(pd.DataFrame([["Rates", "fed funds and its 12-month change; 2- and 10-year Treasury yields; 2s10s slope; 10-year TIPS yield; 10-year minus Cleveland 10-year expectations"],
-                      ["Conditions indexes", "Chicago Fed NFCI and adjusted NFCI"], ["Risk pricing", "VIX; Baa minus 10-year; GZ spread and excess bond premium; Kim-Wright 10-year term premium; mortgage spread"],
-                      ["Asset prices", "Nasdaq 3- and 12-month returns; broad dollar 12-month change (spliced index); WTI oil 3- and 12-month changes; PPI all commodities 12-month change"], ["Credit supply", "SLOOS net tightening of C&I standards (quarterly)"]],
-                     columns=["Group", "Indicators"]).set_index("Group"), "Block 5 contents", small=True)
+R.table(meta_table(5), "Block 5 indicators", small=True)
 R.p("Monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, "
     "GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. "
     "The factor is oriented so that positive = looser.")
@@ -405,7 +404,8 @@ R.h(2, "3. Forecasting core PCE")
 pce_core = m("PCEPILFE"); logp = np.log(pce_core)
 Y = pd.DataFrame({f"pi_fut_{h}": 1200 / h * (logp.shift(-h) - logp) for h in H}); pi12 = 1200 / 12 * (logp - logp.shift(12))
 for h in H: Y[f"dpi_{h}"] = Y[f"pi_fut_{h}"] - pi12; Y[f"decel_{h}"] = (Y[f"dpi_{h}"] < 0).astype(float).where(Y[f"dpi_{h}"].notna())
-HIST = pd.DataFrame({"pi12": pi12, "pi12_lag12": pi12.shift(12), "pi3": B1["pce_core_3m"], "pi6": B1["pce_core_6m"], "d3_pi12": B1["pce_core_d3_12m"], "accel": B1["pce_core_accel"]})
+pi3c, pi6c = B1["pce_core_3m"], B1["pce_core_6m"]
+HIST = pd.DataFrame({"pi12": pi12, "pi12_lag12": pi12.shift(12), "pi3": pi3c, "pi6": pi6c, "d3_pi12": pi12 - pi12.shift(3), "accel": pi3c - pi3c.shift(3)})
 SETS = {"M1 history": list(HIST.columns), "M2 +global": list(HIST.columns) + ["G1", "G2"], "M3 +global+block": list(HIST.columns) + list(F.columns)}
 D = pd.concat([HIST, F, Y], axis=1).loc[F.index]; T = D.index[-1]
 results = []
@@ -443,7 +443,7 @@ for h in [3, 6, 12]:
 dec = pd.DataFrame(dec).loc[["sample mean of target", "history", "G1", "G2", "inflation", "distribution", "expectations", "demand", "financial", "forecast"]]
 fig, ax = plt.subplots(figsize=(8, 3.4)); dec.iloc[1:-1].plot.bar(ax=ax, width=.75); ax.axhline(0, color="grey", lw=.6); ax.set_title(f"Contributions to the core PCE forecast, {T:%b %Y} (pp, deviation from sample mean)"); ax.legend(title="horizon", frameon=False); plt.xticks(rotation=0)
 R.h(3, "Current-signal decomposition")
-R.p("For the linear M3 equation each contribution is the coefficient times the current value's deviation from its sample mean, so contributions sum to the forecast's deviation from the target's mean. This says which signals, at their current values, push the forecast away from its mean; it is not a news decomposition.")
+R.p(TEXT["p02_for_the_linear_m3_equation_eac"])
 R.fig(fig, "decomposition", "Current-signal decomposition of the core PCE forecast."); R.table(dec, "Contributions (pp)")
 
 # news decomposition
@@ -484,7 +484,7 @@ Fz7 = Fz.dropna(); D_sd = Fz7.std(axis=1); C1, lamb, exC, _ = pca(Fz7, 1); RESID
 MEAS = ["cpi", "cpi_core", "pce", "pce_core", "cpi_median", "cpi_trim", "pce_trim", "cpi_sticky", "cpi_core_sticky", "cpi_flex", "cpi_core_flex"]
 meas12 = B1[[f"{t}_12m" for t in MEAS]]; meas3 = B1[[f"{t}_3m" for t in MEAS]]; D_infl12 = meas12.std(axis=1); D_infl3 = meas3.std(axis=1)
 DIS = pd.DataFrame({"D_sd (A)": D_sd, "D_res (B)": D_res, "D_infl_12m (C)": D_infl12, "D_infl_3m (C)": D_infl3})
-R.p("Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.")
+R.p(TEXT["p03_do_today_s_indicators_agree_ab"])
 R.p(f"A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains {100*exC[0]:.0f}% of their variance): how poorly can today's signals be reconciled by one common state? "
     "C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.")
 R.table(pd.DataFrame({"current": DIS.iloc[-1], "percentile": [pct_rank(DIS[c]) for c in DIS], "median": DIS.median(), "p90": DIS.quantile(.9)}), "Disagreement measures, current value and history")
@@ -510,7 +510,7 @@ def analogs(V, k=15, exclude_months=24, min_gap=6):
     for h in (3, 6, 12): out[f"next {h}m"] = Y[f"pi_fut_{h}"].reindex(picked)
     out["change 12m ahead"] = out["next 12m"] - out["core PCE 12m then"]; out["D_res then"] = D_res.reindex(picked); out.index = [d.strftime("%Y-%m") for d in out.index]; return out
 A1 = analogs(Fz7); A2 = analogs(RESID); a1 = A1["change 12m ahead"]; outc = np.where(a1 < -0.5, "sustained disinflation", np.where(a1 > 0.5, "reacceleration", "mixed/flat"))
-R.p("When in the past did the configuration of inflation signals look most like today?")
+R.p(TEXT["p04_when_in_the_past_did_the_confi"])
 R.p(f"Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is {A1['next 12m'].median():.2f} "
     f"(median change {a1.median():+.2f} pp, decelerating in {(a1 < 0).mean():.0%}). Matching on the pattern of disagreement instead gives {', '.join(A2.index[:5])} (median change {A2['change 12m ahead'].median():+.2f}). Not causal.")
 R.table(A1, f"Analogs on the factor vector, origin {T:%b %Y}")
@@ -537,14 +537,14 @@ R.table(PRED, "Subsequent change in core PCE on disagreement, current inflation,
 
 # =============================================================================== additional evidence
 R.h(2, "9. Additional evidence")
-R.p("Four further pieces of evidence feed the answers in the next section: the probability that inflation will be lower over each horizon, a horse race of individual statistics as additions to core PCE 12m, the history of inflation conditional on breadth, and an event study of episodes in which the 3-month rate fell well below the 12-month rate.")
+R.p(TEXT["p05_four_further_pieces_of_evidenc"])
 prob = {}
 for h in [3, 6, 12]:
     cols = SETS["M3 +global+block"]; rm = RM.loc[(h, "M3 +global+block"), "RMSFE"]; fc = today[f"{h}m"]["forecast M3"]
     lg = sm.Logit(D[f"decel_{h}"], sm.add_constant(D[cols]), missing="drop").fit(disp=0)
     prob[f"{h}m"] = {"P(lower) normal approx.": stats.norm.cdf((D.loc[T, "pi12"] - fc) / rm), "P(lower) logit": float(lg.predict(sm.add_constant(D[cols]).loc[[T]]).iloc[0]), "unconditional": D[f"decel_{h}"].mean()}
 PROB = pd.DataFrame(prob); n_dec = int((meas3.loc[T].values < meas12.loc[T].values).sum())
-CANDS = {"core PCE 3m": B1["pce_core_3m"], "core PCE 6m": B1["pce_core_6m"], "core PCE 3m-12m": B1["pce_core_3m_less_12m"], "core CPI 12m": B1["cpi_core_12m"], "median CPI 12m": B1["cpi_median_12m"], "median CPI 3m": B1["cpi_median_3m"],
+CANDS = {"core PCE 3m": B1["pce_core_3m"], "core PCE 6m": B1["pce_core_6m"], "core PCE 3m-12m": B1["pce_core_3m"] - B1["pce_core_12m"], "core CPI 12m": B1["cpi_core_12m"], "median CPI 12m": B1["cpi_median_12m"], "median CPI 3m": B1["cpi_median_3m"],
          "trimmed PCE 12m": B1["pce_trim_12m"], "trimmed CPI 12m": B1["cpi_trim_12m"], "sticky CPI 12m": B1["cpi_sticky_12m"], "flexible CPI 12m": B1["cpi_flex_12m"], "breadth >3% (3m)": B2["share_gt3_3m"],
          "breadth >3% (12m)": B2["share_gt3_12m"], "xs dispersion (3m)": B2["xs_sd_3m"], "xs median (3m)": B2["xs_median_3m"], "SPF dispersion": B3["spf_cpi_4q_sd"], "Michigan 1y": B3["mich_1y"]}
 DC = pd.concat([D[["pi12", "pi3"] + [f"pi_fut_{h}" for h in H] + [f"dpi_{h}" for h in H]], pd.DataFrame(CANDS)], axis=1).loc[D.index]; race = []
@@ -567,10 +567,10 @@ EV = pd.DataFrame([{"date": t.strftime("%Y-%m"), "core 12m": pi12.loc[t], "gap":
                     "reaccelerated within 6m": bool((B1["pce_core_3m"].loc[t:t + pd.DateOffset(months=6)] > pi12.loc[t]).any())} for t in events]).set_index("date"); ev_hist = EV.dropna(subset=["12m change ahead"])
 blk_pred = {f"{h}m": {c: f"{r.params[c]:+.2f} ({r.tvalues[c]:+.1f})" for c in F.columns} for h, r in [(h, ols(D[f"pi_fut_{h}"], D[SETS["M3 +global+block"]], hac=h)) for h in (3, 6, 12)]}
 drivers = {b: (LB[b] * Z[b].iloc[-1].fillna(0)).sort_values(key=abs, ascending=False).head(5) for b in BLOCKS}
-fin_vars = ["fedfunds", "real_10y_clev", "term_2s10s", "nfci", "vix", "baa_spread", "ebp", "term_premium_10y", "equity_12m_ret", "usd_12m", "mortgage_spread", "sloos_ci"]; tight_if_high = {"fedfunds", "real_10y_clev", "nfci", "vix", "baa_spread", "ebp", "mortgage_spread", "sloos_ci", "usd_12m", "term_premium_10y"}
+fin_vars = ["fedfunds", "real_10y_clev", "dgs10", "nfci", "vix", "baa_spread", "ebp", "term_premium_10y", "equity_12m_ret", "usd_12m", "mortgage30", "sloos_ci"]; tight_if_high = {"fedfunds", "real_10y_clev", "dgs10", "nfci", "vix", "baa_spread", "ebp", "mortgage30", "sloos_ci", "usd_12m", "term_premium_10y"}
 fin_now = pd.DataFrame({"latest": [B5[c].dropna().iloc[-1] for c in fin_vars], "percentile": [pct_rank(B5[c]) for c in fin_vars]}, index=fin_vars); fin_now["side"] = ["tight" if ((c in tight_if_high) == (p > 50)) else "loose" for c, p in zip(fin_vars, fin_now["percentile"])]
-exp_now = pd.DataFrame({"latest": [B3[c].dropna().iloc[-1] for c in ["mich_1y", "spf_cpi_4q", "clev_1y", "bei_5y", "bei_5y5y", "spf_cpi_10y", "spf_cpi_4q_sd", "mich_less_spf"]], "percentile": [pct_rank(B3[c]) for c in ["mich_1y", "spf_cpi_4q", "clev_1y", "bei_5y", "bei_5y5y", "spf_cpi_10y", "spf_cpi_4q_sd", "mich_less_spf"]]},
-                       index=["mich_1y", "spf_cpi_4q", "clev_1y", "bei_5y", "bei_5y5y", "spf_cpi_10y", "spf_cpi_4q_sd", "mich_less_spf"])
+B3x = B3.assign(mich_less_spf=MICH_LESS_SPF); ev_ = ["mich_1y", "spf_cpi_4q", "clev_1y", "bei_5y", "bei_5y5y", "spf_cpi_10y", "spf_cpi_4q_sd", "mich_less_spf"]
+exp_now = pd.DataFrame({"latest": [B3x[c].dropna().iloc[-1] for c in ev_], "percentile": [pct_rank(B3x[c]) for c in ev_]}, index=ev_)
 dem_now = pd.DataFrame({"latest": [B4[c].dropna().iloc[-1] for c in ["unrate", "vu_ratio", "ahe_12m", "real_pce_6m"]], "percentile": [pct_rank(B4[c]) for c in ["unrate", "vu_ratio", "ahe_12m", "real_pce_6m"]]}, index=["unrate", "vu_ratio", "ahe_12m", "real_pce_6m"])
 R.table(PROB, "Probability that core PCE inflation is lower over the next h months than the current 12m rate"); R.table(RACE[[f"rel RMSFE {h}m" for h in (3, 6, 12)] + ["corr with core PCE 12m", "type"]], "Horse race: each statistic added to core PCE 12m; relative RMSFE < 1 beats core PCE 12m alone")
 R.table(cond, "Conditional history by breadth (share of categories above 3% at 12m)"); R.table(EV, "Spells with core PCE 3m at least 1 pp below 12m")
@@ -588,7 +588,7 @@ qa("1. Best estimate of underlying inflation today", [
    f"Common signal across the {len(MEAS)} 12m measures (median): {common12:.1f}. Above it by more than 0.25: {', '.join(above) or 'none'}; below: {', '.join(below) or 'none'}.",
    f"Disagreement among measures at the {ordinal(pct_rank(D_infl12))} percentile (12m) and {ordinal(pct_rank(D_infl3))} (3m): {'unusually high' if pct_rank(D_infl12) > 80 else 'unusually low' if pct_rank(D_infl12) < 20 else 'not unusual'}."])
 qa("2. Accelerating or decelerating", [
-   f"{n_dec} of {len(MEAS)} measures have 3m below 12m; core PCE 3m-12m gap {B1['pce_core_3m_less_12m'].loc[T]:+.1f} pp, 6m-12m {B1['pce_core_6m_less_12m'].loc[T]:+.1f}.",
+   f"{n_dec} of {len(MEAS)} measures have 3m below 12m; core PCE 3m-12m gap {(B1['pce_core_3m'] - B1['pce_core_12m']).loc[T]:+.1f} pp, 6m-12m {(B1['pce_core_6m'] - B1['pce_core_12m']).loc[T]:+.1f}.",
    f"Factor model: {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} over 3/6/12m against a 12m rate of {h12['current 12m core PCE']:.1f}: {h12['direction']} ({h12['forecast change vs 12m']:+.2f} pp at 12m).",
    f"P(lower over 3/6/12m): normal approximation {PROB.loc['P(lower) normal approx.', '3m']:.0%} / {PROB.loc['P(lower) normal approx.', '6m']:.0%} / {p12:.0%}; logit {PROB.loc['P(lower) logit', '3m']:.0%} / {PROB.loc['P(lower) logit', '6m']:.0%} / {PROB.loc['P(lower) logit', '12m']:.0%} (unconditional about {PROB.loc['unconditional', '12m']:.0%})."])
 qa("3. Breadth", [
@@ -642,7 +642,7 @@ qa("15. Warsh, Waller, Kashkari", [
    f"Waller (underlying inflation declining): {n_dec}/{len(MEAS)} measures show 3m below 12m; the model projects {h12['forecast change vs 12m']:+.2f} pp over 12m with P(lower) {p12:.0%}, so the momentum is {'confirmed' if p12 > 0.6 else 'only partly confirmed'}; comparable gaps were turning points {ev_hist['turning point'].mean():.0%} of the time.",
    f"Kashkari (entrenchment from waiting): the 12m forecast stays at {h12['forecast M3']:.1f}%, the expectations block is the most inflationary residual ({RESID.iloc[-1]['B_exp']:+.2f}) with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals, and analogs reaccelerated in {np.mean(outc == 'reacceleration'):.0%} of cases: "
    f"{'supports' if (h12['forecast M3'] > 2.75 and RESID.iloc[-1]['B_exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
-R.p("Caveat: latest-vintage data and full-sample factor loadings; the news decomposition is pseudo-real-time (no data revisions; publication lags only at the ragged edge). Rule-based wording thresholds are in the answers section of run.py.")
+R.p(TEXT["p06_caveat_latest_vintage_data_an"])
 R.summary([
     f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} over 3 months; the median across eleven measures is {common12:.1f}, and {n_dec} of {len(MEAS)} measures show 3m below 12m.",
     f"The factor model projects {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} percent over 3/6/12 months, a change of {h12['forecast change vs 12m']:+.2f} pp at 12 months; the probability of lower inflation over 12 months is {p12:.0%} (normal approximation) to {PROB.loc['P(lower) logit', '12m']:.0%} (logit).",

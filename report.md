@@ -6,11 +6,11 @@ Report generated September 08, 2026; data through September 2026.
 **Summary**
 
 - Core PCE runs at 3.3 percent over 12 months and 3.0 over 3 months; the median across eleven measures is 2.7, and 10 of 11 measures show 3m below 12m.
-- The factor model projects 3.3 / 3.3 / 3.2 percent over 3/6/12 months, a change of -0.08 pp at 12 months; the probability of lower inflation over 12 months is 53% (normal approximation) to 75% (logit).
-- Out of sample the factors do not beat inflation history (relative RMSFE 1.14 at 12 months); the distribution block is the only factor with a significant coefficient.
+- The factor model projects 3.2 / 3.2 / 3.1 percent over 3/6/12 months, a change of -0.19 pp at 12 months; the probability of lower inflation over 12 months is 58% (normal approximation) to 69% (logit).
+- Out of sample the factors do not beat inflation history (relative RMSFE 1.09 at 12 months); the distribution block is the only factor with a significant coefficient.
 - Breadth: 56 percent of categories above 3 percent at 12 months (65th percentile), 45 percent at 3 months (45th).
-- Financial conditions sit at the 75th percentile on the loose side; demand at the 35th; expectations are the outlier, with households +1.9 pp above professionals and SPF dispersion at the 95th percentile.
-- Cross-block disagreement is at the 41st percentile; the closest analogs are 2014-03, 2006-03, 2004-04, 2007-07, after which core PCE changed by +0.09 pp (median) over 12 months.
+- Financial conditions sit at the 62nd percentile on the loose side; demand at the 24th; expectations are the outlier, with households +1.9 pp above professionals and SPF dispersion at the 95th percentile.
+- Cross-block disagreement is at the 46th percentile; the closest analogs are 2006-08, 2004-04, 2003-09, 2007-07, after which core PCE changed by -0.03 pp (median) over 12 months.
 - Current regime: adverse-supply-like (infl high, demand weak).
 
 
@@ -34,31 +34,39 @@ For each block the same diagnostic is shown: the variables are standardized, a p
 
 ### Block 1: inflation measures
 
-*Block 1 contents*
+*Block 1 indicators*
 
-| Indicators | Source | Transformation |
-|---|---|---|
-| CPI, core CPI, PCE, core PCE, CPI services ex energy, PCE services | BLS, BEA (index levels) | annualized 1/3/6/12-month log changes |
-| Median CPI, 16% trimmed-mean CPI | Cleveland Fed (1-month annualized and 12-month rates) | 3m and 6m as rolling means of the 1-month rate |
-| Trimmed-mean PCE | Dallas Fed | as above |
-| Sticky, core sticky, flexible, core flexible CPI | Atlanta Fed | as above |
-| Momentum for every measure | derived | 3m minus 12m, 6m minus 12m, change in the 12m rate over 3/6/12 months, acceleration (3m rate minus its value three months earlier) |
+| shorthand | indicator | source | transformation |
+|---|---|---|---|
+| cpi_{1,3,6,12}m | CPI, all items | BLS via FRED | annualized 1/3/6/12-month log change of the index |
+| cpi_core_{1,3,6,12}m | CPI ex food and energy | BLS via FRED | annualized 1/3/6/12-month log change of the index |
+| pce_{1,3,6,12}m | PCE price index | BEA via FRED | annualized 1/3/6/12-month log change of the index |
+| pce_core_{1,3,6,12}m | PCE ex food and energy | BEA via FRED | annualized 1/3/6/12-month log change of the index |
+| cpi_svc_xe_{1,3,6,12}m | CPI services ex energy services | BLS via FRED | annualized 1/3/6/12-month log change of the index |
+| pce_svc_{1,3,6,12}m | PCE services price index | BEA via FRED | annualized 1/3/6/12-month log change of the index |
+| cpi_median_{1,3,6,12}m | Median CPI | Cleveland Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| cpi_trim_{1,3,6,12}m | 16% trimmed-mean CPI | Cleveland Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| pce_trim_{1,3,6,12}m | Trimmed-mean PCE | Dallas Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| cpi_sticky_{1,3,6,12}m | Sticky-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| cpi_core_sticky_{1,3,6,12}m | Core sticky-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| cpi_flex_{1,3,6,12}m | Flexible-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
+| cpi_core_flex_{1,3,6,12}m | Core flexible-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
 
-For the principal indexes the multi-horizon rates capture the level of inflation and the momentum terms whether it is accelerating or decelerating; the median, trimmed, sticky and flexible measures add alternative filters of the same aggregate.
+Only levels at several horizons enter the block. Momentum and acceleration (3m minus 12m, changes in the 12m rate) are deliberately not included as separate indicators: they are linear combinations of what is already in the panel, and the PCA recovers them itself as contrasts, with opposite loadings on short- and long-horizon rates. The forecasting regressions in section 3 use momentum terms computed directly from core PCE.
 
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-PC1 is aligned positively with headline/core level (5), persistent-measure level (3); e.g. cpi_trim_3m, cpi_12m, pce_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.
+PC1 is aligned positively with 6m rate (3), short-horizon rate (1m/3m) (3), 12m rate (2); e.g. cpi_trim_6m, pce_trim_6m, pce_core_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon, a level factor.
 
-PC2 is aligned positively with momentum (4); e.g. cpi_sticky_3m_less_12m, cpi_core_sticky_3m_less_12m, cpi_sticky_6m_less_12m; inverted: persistent-measure level (3), headline/core level (1); e.g. cpi_sticky_12m, cpi_core_sticky_12m, cpi_svc_xe_12m. Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).
+PC2 is aligned positively with short-horizon rate (1m/3m) (6), 6m rate (2); e.g. cpi_flex_3m, cpi_flex_6m, cpi_flex_1m; inverted: none. Reading: recent momentum in sticky and median prices against their 12-month level, a turning-point factor: high when persistent inflation is low but re-accelerating, low when it is high but slowing (2022-23).
 
-118 variables from 1985-01. The first three components explain 36, 20, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at -0.2 standard deviations today, the 45th percentile of its history. The largest deviations from what the common factor implies are cpi_flex_accel (-2.5 sd), cpi_accel (-2.2 sd), pce_accel (-1.8 sd).
+52 variables from 1985-01. The first three components explain 63, 14, and 4 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 58th percentile of its history. The largest deviations from what the common factor implies are pce_6m (+1.1 sd), pce_12m (+1.0 sd), cpi_flex_3m (-1.0 sd).
 
 
 ### Block 2: price-change distribution
 
-*Block 2 contents: 34 CPI expenditure categories (FRED, seasonally adjusted)*
+*Block 2 universe: 34 CPI expenditure categories (FRED, seasonally adjusted)*
 
 | Group | Categories |
 |---|---|
@@ -66,7 +74,20 @@ PC2 is aligned positively with momentum (4); e.g. cpi_sticky_3m_less_12m, cpi_co
 | Energy (4) | gasoline; fuel oil; electricity; utility gas |
 | Core goods (12) | men's, women's and infants' apparel; footwear; new and used vehicles; vehicle parts; medical commodities; household furnishings; tobacco; recreation commodities; educational books |
 | Services (11) | rent; owners' equivalent rent; lodging away from home; water and sewer; professional medical and hospital services; vehicle maintenance; public transportation; tuition and childcare; personal care; other services |
-| Statistics | shares above 0/2/3/4/5 percent, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share; each at 3, 6 and 12 months |
+
+*Block 2 indicators*
+
+| shorthand | indicator | source | transformation |
+|---|---|---|---|
+| share_gt{0,2,3,4,5}_{3,6,12}m | share of categories with inflation above 0/2/3/4/5 percent | 34 CPI categories, BLS via FRED | count divided by categories available; computed on annualized 3/6/12-month category inflation |
+| share_accel_{3,6,12}m | share of categories accelerating | 34 CPI categories, BLS via FRED | h-month rate above the 12-month rate (at h = 12: above the 12-month rate a year earlier); computed on annualized 3/6/12-month category inflation |
+| share_decel_{3,6,12}m | share of categories decelerating | 34 CPI categories, BLS via FRED | as above, below; computed on annualized 3/6/12-month category inflation |
+| xs_sd_{3,6,12}m | cross-sectional standard deviation | 34 CPI categories, BLS via FRED | across categories; computed on annualized 3/6/12-month category inflation |
+| xs_iqr_{3,6,12}m | interquartile range | 34 CPI categories, BLS via FRED | 75th minus 25th percentile across categories; computed on annualized 3/6/12-month category inflation |
+| xs_p90_p10_{3,6,12}m | 90-10 spread | 34 CPI categories, BLS via FRED | 90th minus 10th percentile; computed on annualized 3/6/12-month category inflation |
+| xs_skew_{3,6,12}m | cross-sectional skewness | 34 CPI categories, BLS via FRED | computed on annualized 3/6/12-month category inflation |
+| xs_median_{3,6,12}m | median category inflation | 34 CPI categories, BLS via FRED | computed on annualized 3/6/12-month category inflation |
+| upper_tail_share_{3,6,12}m | upper-tail share | 34 CPI categories, BLS via FRED | share of the sum of absolute category inflation coming from the top decile; computed on annualized 3/6/12-month category inflation |
 
 Cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI expenditure categories from FRED (SA), selected so that no category nests another; unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.
 
@@ -82,90 +103,116 @@ PC2 is aligned positively with dispersion (2), breadth momentum (1); e.g. xs_iqr
 
 ### Block 3: inflation expectations
 
-*Block 3 contents*
+*Block 3 indicators*
 
-| Group | Indicators |
-|---|---|
-| Households | Michigan 1-year median expectation |
-| Professionals | SPF median 4-quarter-ahead CPI; SPF 10-year CPI (Philadelphia Fed) |
-| Model-based | Cleveland Fed 1-year and 10-year expected inflation |
-| Markets | 5-year, 10-year and 5y5y forward breakevens |
-| Disagreement | SPF cross-sectional IQR and SD of the 4-quarter forecast; households minus professionals; households minus markets; professionals minus the Cleveland model |
-| Term structure | 1-year minus 10-year for Michigan/Cleveland, SPF 4q minus 10y, 5y minus 5y5y breakevens |
+| shorthand | indicator | source | transformation |
+|---|---|---|---|
+| mich_1y | Michigan 1-year expected inflation, median | Michigan survey via FRED | level, percent |
+| clev_1y | Cleveland Fed 1-year expected inflation | Cleveland Fed via FRED | level |
+| clev_10y | Cleveland Fed 10-year expected inflation | Cleveland Fed via FRED | level |
+| bei_5y | 5-year breakeven inflation | Treasury via FRED | monthly mean of daily |
+| bei_10y | 10-year breakeven | Treasury via FRED | monthly mean |
+| bei_5y5y | 5y5y forward breakeven | Treasury via FRED | monthly mean |
+| spf_cpi_4q | SPF median CPI forecast, next four quarters | Philadelphia Fed SPF (not on FRED) | mean of the individual CPI2-CPI5 forecasts, median across forecasters; quarterly spread to months |
+| spf_cpi_4q_iqr | SPF cross-sectional IQR of the 4-quarter forecast | Philadelphia Fed SPF | 75th minus 25th percentile across forecasters |
+| spf_cpi_4q_sd | SPF cross-sectional SD of the 4-quarter forecast | Philadelphia Fed SPF | across forecasters |
+| spf_cpi_10y | SPF median 10-year CPI forecast | Philadelphia Fed SPF | quarterly spread to months |
 
-Levels of expected inflation, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI median and SPF 10y, 5y/10y/5y5y breakevens; disagreement as the SPF cross-sectional IQR and SD and as spreads between households, professionals, the Cleveland model and markets; near minus long horizons. Michigan 5-10y expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.
+Levels of expected inflation from households, professionals, a model and markets at short and long horizons, plus forecaster dispersion. Spreads between sources and horizons are not included as separate indicators; the PCA forms them as contrasts. Michigan 5-10 year expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.
 
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-PC1 is aligned positively with term structure (3), markets (2), professionals (1), model-based (1), households (1); e.g. spf_cpi_4q, spf_4q_less_10y, clev_1y; inverted: none. Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.
+PC1 is aligned positively with markets (3), model-based (2), professionals (2), households (1); e.g. clev_1y, spf_cpi_4q, clev_10y; inverted: none. Reading: the level of near-term expected inflation across professionals, the Cleveland model, markets and households, plus the slope of the expectations term structure; a near-term expectations factor.
 
-PC2 is aligned positively with household-professional/market gaps (3), dispersion (2), term structure (1), households (1); e.g. mich_1y_less_clev10, mich_less_spf, mich_less_bei5; inverted: model-based (1); e.g. clev_10y. Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.
+PC2 is aligned positively with dispersion (2), markets (2), households (1); e.g. spf_cpi_4q_sd, spf_cpi_4q_iqr, mich_1y; inverted: model-based (2), professionals (1); e.g. clev_10y, spf_cpi_10y, clev_1y. Reading: households versus professionals, the model and markets, together with forecaster dispersion; an excess-household-expectations and disagreement factor, high when households expect more than everyone else.
 
-17 variables from 1985-01. The first three components explain 31, 28, and 13 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 56th percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_5y_less_5y5y (+0.5 sd), bei_10y (+0.5 sd).
+10 variables from 1985-01. The first three components explain 38, 25, and 15 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 52nd percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_10y (+0.5 sd), bei_5y5y (+0.1 sd).
 
 
 ### Block 4: demand and labor
 
-*Block 4 contents*
+*Block 4 indicators*
 
-| Group | Indicators |
-|---|---|
-| Labor market | unemployment rate and its 12-month change; payroll growth (3m, 12m); initial claims (log level, 3-month change); job openings to unemployed; quits rate |
-| Wages | average hourly earnings (3m, 12m); ECI wages and salaries (yoy, quarterly); compensation of employees (12m) |
-| Activity and demand | real PCE (6m, 12m); real retail sales (6m); industrial production (6m, 12m); capacity utilization; real private investment (yoy, quarterly); real GDP (yoy, quarterly); Michigan sentiment |
+| shorthand | indicator | source | transformation |
+|---|---|---|---|
+| unrate | Unemployment rate | BLS via FRED | level, percent |
+| payrolls_3m / payrolls_12m | Nonfarm payrolls | BLS via FRED | annualized 3- and 12-month log growth |
+| claims_log | Initial claims | DOL via FRED | log of the monthly mean of weekly claims |
+| vu_ratio | Job openings to unemployed | BLS JOLTS via FRED | ratio |
+| quits | Quits rate | BLS JOLTS via FRED | level, percent |
+| ahe_3m / ahe_12m | Average hourly earnings, production workers | BLS via FRED | annualized 3- and 12-month log growth |
+| eci_wages_yoy | ECI wages and salaries | BLS via FRED | year-on-year percent, quarterly spread to months |
+| comp_12m | Compensation of employees | BEA via FRED | 12-month log growth |
+| real_pce_6m / real_pce_12m | Real PCE | BEA via FRED | annualized 6- and 12-month log growth |
+| real_retail_6m | Real retail sales | Census via FRED | annualized 6-month log growth |
+| ip_6m / ip_12m | Industrial production | Fed via FRED | annualized 6- and 12-month log growth |
+| capu | Capacity utilization | Fed via FRED | level, percent |
+| real_inv_yoy | Real gross private domestic investment | BEA via FRED | year-on-year, quarterly spread to months |
+| gdp_yoy | Real GDP | BEA via FRED | year-on-year, quarterly spread to months |
+| sentiment | Michigan consumer sentiment | Michigan via FRED | level |
 
-Rates in levels (and 12-month changes for unemployment), quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.
+Rates in levels, quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.
 
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-PC1 is aligned positively with activity (5), labor market (1), wages (1); e.g. gdp_yoy, payrolls_12m, real_pce_12m; inverted: labor market (1); e.g. unrate_d12. Reading: output and employment growth, the business-cycle factor.
+PC1 is aligned positively with activity (6), wages (1), labor market (1); e.g. gdp_yoy, comp_12m, payrolls_12m; inverted: none. Reading: output and employment growth, the business-cycle factor.
 
-PC2 is aligned positively with wages (3), labor market (3); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: labor market (1), activity (1); e.g. unrate, real_retail_6m. Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.
+PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: activity (2), labor market (1); e.g. unrate, real_retail_6m, ip_6m. Reading: wage growth and labor-market tightness (V/U, quits) against the unemployment rate and retail momentum; a labor-tightness and wage-pressure factor distinct from output growth.
 
-21 variables from 1985-01. The first three components explain 44, 19, and 9 percent of the variance, which points to one dominant dimension. The first component stands at -0.1 standard deviations today, the 31st percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
+19 variables from 1985-01. The first three components explain 43, 21, and 8 percent of the variance, which points to one dominant dimension. The first component stands at -0.2 standard deviations today, the 28th percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
 
 
 ### Block 5: financial conditions and risk pricing
 
-*Block 5 contents*
+*Block 5 indicators*
 
-| Group | Indicators |
-|---|---|
-| Rates | fed funds and its 12-month change; 2- and 10-year Treasury yields; 2s10s slope; 10-year TIPS yield; 10-year minus Cleveland 10-year expectations |
-| Conditions indexes | Chicago Fed NFCI and adjusted NFCI |
-| Risk pricing | VIX; Baa minus 10-year; GZ spread and excess bond premium; Kim-Wright 10-year term premium; mortgage spread |
-| Asset prices | Nasdaq 3- and 12-month returns; broad dollar 12-month change (spliced index); WTI oil 3- and 12-month changes; PPI all commodities 12-month change |
-| Credit supply | SLOOS net tightening of C&I standards (quarterly) |
+| shorthand | indicator | source | transformation |
+|---|---|---|---|
+| fedfunds | Effective federal funds rate | Fed via FRED | monthly mean, percent |
+| dgs2 / dgs10 | 2- and 10-year Treasury yields | Treasury via FRED | monthly mean of daily |
+| real_10y_tips | 10-year TIPS yield | Treasury via FRED | monthly mean |
+| real_10y_clev | 10-year real rate | derived | 10-year yield minus Cleveland Fed 10-year expected inflation (the expectation is in block 3, so this is not a within-block difference) |
+| nfci / anfci | Chicago Fed NFCI and adjusted NFCI | Chicago Fed via FRED | monthly mean; positive = tighter |
+| vix | VIX | Cboe via FRED | monthly mean |
+| baa_spread | Moody's Baa yield minus 10-year Treasury | FRED (published spread) | monthly mean |
+| gz_spread / ebp | Gilchrist-Zakrajsek spread and excess bond premium | Federal Reserve (not on FRED) | level |
+| term_premium_10y | Kim-Wright 10-year term premium | Fed via FRED | monthly mean |
+| equity_3m_ret / equity_12m_ret | Nasdaq composite | FRED | 3- and 12-month log return (the S&P 500 on FRED covers ten years only) |
+| usd_12m | Broad dollar index | Fed via FRED | 12-month log change; 1973-2019 and 2006- indexes spliced at the overlap |
+| oil_3m / oil_12m | WTI crude oil | FRED | 3- and 12-month log change |
+| ppi_comm_12m | PPI all commodities | BLS via FRED | 12-month log change |
+| sloos_ci | SLOOS net share tightening C&I standards | Fed via FRED | quarterly spread to months |
+| mortgage30 | 30-year mortgage rate | Freddie Mac via FRED | monthly mean |
 
 Monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. The factor is oriented so that positive = looser.
 
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-PC1 is aligned positively with asset prices (1); e.g. equity_12m_ret; inverted: risk pricing (4), conditions indexes (2), credit supply (1); e.g. ebp, gz_spread, baa_spread. Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.
+PC1 is aligned positively with none; inverted: rates (6), risk pricing (1), credit supply (1); e.g. mortgage30, real_10y_clev, dgs10. Reading: credit spreads, the excess bond premium, the NFCI and lending standards (inverted) with equity returns positive; a risk-appetite versus financial-stress factor, oriented so that higher = looser.
 
-PC2 is aligned positively with rates (5), risk pricing (1), credit supply (1); e.g. dgs2, dgs10, real_10y_clev; inverted: risk pricing (1); e.g. baa_spread. Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.
+PC2 is aligned positively with risk pricing (4), conditions indexes (2), credit supply (1); e.g. gz_spread, baa_spread, ebp; inverted: asset prices (1); e.g. equity_12m_ret. Reading: the level of nominal and real interest rates, a rates-level factor independent of risk pricing.
 
-22 variables from 1985-01. The first three components explain 27, 25, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.7 standard deviations today, the 79th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.6 sd), mortgage_spread (+0.7 sd), term_2s10s (-0.5 sd).
+20 variables from 1985-01. The first three components explain 31, 27, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.1 standard deviations today, the 57th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.5 sd), baa_spread (-1.0 sd), vix (-0.5 sd).
 
 
 ## 2. Factor structure
 
 The factor model is X = Lambda_G G + lambda_B B + e: two global factors common to the whole panel and one factor specific to each block. The implementation is simple: standardize the panel, extract two principal components, subtract the fitted global component, and take the first principal component of each block's residual. Signs are normalized so that every factor is oriented as inflationary pressure (the financial factor: looser conditions). A VAR(1) on the seven factors provides the dynamics used in the news decomposition.
 
-The panel has 217 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 46% of its variance (G1 30%, G2 16%); one PC per block on the residual explains infl 23%, dist 26%, exp 48%, dem 40%, fin 33% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.96, G2 0.95, B_infl 0.85, B_dist 0.81, B_exp 0.90, B_dem 0.80, B_fin 0.98.
+The panel has 140 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 52% of its variance (G1 39%, G2 13%); one PC per block on the residual explains infl 20%, dist 28%, exp 50%, dem 31%, fin 34% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.97, G2 0.93, B_infl 0.85, B_dist 0.84, B_exp 0.86, B_dem 0.82, B_fin 0.96.
 
-G1 is drawn from infl (8), dist (2) among its top-10 correlates; aligned positively with infl headline/core level (5), infl persistent-measure level (3), dist central tendency (2); e.g. cpi_trim_3m, cpi_12m, pce_12m; inverted: none. Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.
+G1 is drawn from infl (10) among its top-10 correlates; aligned positively with infl 6m rate (4), infl 12m rate (4), infl short-horizon rate (1m/3m) (2); e.g. cpi_trim_6m, pce_trim_6m, cpi_trim_3m; inverted: none. Reading: the common inflation level, essentially the inflation block's level factor plus breadth; the state the median and trimmed measures try to track.
 
-G2 is drawn from infl (10) among its top-10 correlates; aligned positively with infl momentum (6); e.g. cpi_sticky_3m_less_12m, cpi_core_sticky_3m_less_12m, cpi_sticky_6m_less_12m; inverted: infl persistent-measure level (3), infl headline/core level (1); e.g. cpi_sticky_12m, cpi_core_sticky_12m, cpi_svc_xe_12m. Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state.
+G2 is drawn from dem (5), fin (3), infl (2) among its top-10 correlates; aligned positively with dem activity (5), infl short-horizon rate (1m/3m) (1), infl 6m rate (1), fin asset prices (1); e.g. ip_12m, ip_6m, real_inv_yoy; inverted: fin credit supply (1), fin risk pricing (1); e.g. sloos_ci, ebp. Reading: inflation momentum against persistence (sticky and median momentum positive, their levels inverted), oriented with demand: a re-acceleration versus disinflation state.
 
-- B_infl loads on: pce_3m_less_12m (+0.19), cpi_median_d6_12m (-0.18), cpi_sticky_d6_12m (-0.18)
-- B_dist loads on: xs_sd_12m (+0.35), xs_sd_6m (+0.35), xs_p90_p10_6m (+0.33)
-- B_exp loads on: mich_less_spf (+0.40), mich_1y_less_clev10 (+0.38), mich_less_bei5 (+0.33)
-- B_dem loads on: gdp_yoy (+0.30), payrolls_12m (+0.28), real_pce_12m (+0.28)
-- B_fin loads on: gz_spread (-0.37), baa_spread (-0.36), ebp (-0.31)
+- B_infl loads on: cpi_core_flex_6m (-0.29), cpi_core_flex_3m (-0.28), cpi_core_flex_12m (-0.26)
+- B_dist loads on: xs_sd_12m (+0.29), xs_sd_6m (+0.27), xs_sd_3m (+0.25)
+- B_exp loads on: spf_cpi_10y (-0.45), spf_cpi_4q_sd (+0.44), clev_10y (-0.44)
+- B_dem loads on: payrolls_12m (+0.33), gdp_yoy (+0.31), real_pce_12m (+0.30)
+- B_fin loads on: real_10y_clev (+0.35), dgs10 (+0.35), term_premium_10y (+0.34)
 
 ![Global and block-specific factors.](figures/factors.png)
 *Global and block-specific factors.*
@@ -182,21 +229,21 @@ Forecasts are evaluated pseudo-out-of-sample with an expanding window, its chang
 | model | RMSFE 3 | RMSFE 6 | RMSFE 12 | rel_RMSFE 3 | rel_RMSFE 6 | rel_RMSFE 12 | dir_acc 3 | dir_acc 6 | dir_acc 12 |
 |---|---|---|---|---|---|---|---|---|---|
 | M1 history | 0.94 | 0.81 | 0.84 | 1.00 | 1.00 | 1.00 | 0.57 | 0.58 | 0.64 |
-| M2 +global | 0.96 | 0.83 | 0.86 | 1.02 | 1.02 | 1.03 | 0.51 | 0.54 | 0.59 |
-| M3 +global+block | 0.99 | 0.89 | 0.95 | 1.05 | 1.09 | 1.14 | 0.52 | 0.54 | 0.53 |
+| M2 +global | 0.97 | 0.85 | 0.86 | 1.03 | 1.04 | 1.02 | 0.55 | 0.56 | 0.60 |
+| M3 +global+block | 0.99 | 0.87 | 0.91 | 1.05 | 1.07 | 1.09 | 0.56 | 0.56 | 0.61 |
 
 *In-sample factor coefficients (HAC t-statistics, lag = horizon) in the M3 regression*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
-| G1 | -0.00 (-0.0) | -0.01 (-0.5) | -0.02 (-0.9) |
-| G2 | +0.02 (+0.9) | +0.02 (+0.8) | +0.01 (+0.4) |
-| B_infl | +0.02 (+1.0) | +0.03 (+1.0) | +0.04 (+1.2) |
-| B_dist | +0.09 (+2.9) | +0.09 (+2.9) | +0.11 (+3.3) |
-| B_exp | +0.00 (+0.1) | -0.00 (-0.1) | -0.01 (-0.1) |
-| B_dem | -0.02 (-0.6) | -0.00 (-0.1) | -0.01 (-0.2) |
-| B_fin | +0.07 (+1.7) | +0.03 (+0.9) | +0.03 (+0.7) |
-| R2 M3 / M1 | 0.58 / 0.55 | 0.66 / 0.62 | 0.66 / 0.60 |
+| G1 | -0.03 (-0.8) | -0.04 (-1.1) | -0.05 (-1.5) |
+| G2 | +0.04 (+1.7) | +0.03 (+1.5) | +0.02 (+0.7) |
+| B_infl | -0.14 (-4.0) | -0.16 (-4.9) | -0.16 (-3.9) |
+| B_dist | +0.05 (+1.6) | +0.05 (+1.8) | +0.07 (+2.5) |
+| B_exp | -0.02 (-0.3) | -0.02 (-0.3) | -0.04 (-0.5) |
+| B_dem | +0.03 (+0.6) | +0.05 (+1.2) | +0.05 (+0.9) |
+| B_fin | +0.02 (+0.3) | +0.02 (+0.3) | +0.02 (+0.3) |
+| R2 M3 / M1 | 0.58 / 0.55 | 0.67 / 0.62 | 0.66 / 0.60 |
 
 
 ## 4. What the model says today
@@ -207,11 +254,11 @@ Forecasts are evaluated pseudo-out-of-sample with an expanding window, its chang
 |---|---|---|---|
 | current 12m core PCE | 3.289442706823209 | 3.289442706823209 | 3.289442706823209 |
 | current h-month core PCE | 3.0022534820087543 | 3.4009147883450552 | 3.289442706823209 |
-| forecast M3 | 3.2846510342444732 | 3.254892060435582 | 3.214008448922007 |
+| forecast M3 | 3.1702092797229766 | 3.1520108259111677 | 3.0960768370066134 |
 | forecast M1 history | 3.1839559168582685 | 3.1246702462890807 | 3.033274924455645 |
-| forecast change vs 12m | -0.004791672578735806 | -0.03455064638762684 | -0.07543425790120217 |
+| forecast change vs 12m | -0.11923342710023244 | -0.1374318809120414 | -0.19336586981659565 |
 | direction | decelerating | decelerating | decelerating |
-| 90% band | [1.7, 4.9] | [1.8, 4.7] | [1.6, 4.8] |
+| 90% band | [1.5, 4.8] | [1.7, 4.6] | [1.6, 4.6] |
 
 
 ## 5. Current-signal and news decompositions
@@ -229,20 +276,20 @@ For the linear M3 equation each contribution is the coefficient times the curren
 |  | 3m | 6m | 12m |
 |---|---|---|---|
 | sample mean of target | 2.35 | 2.34 | 2.33 |
-| history | 0.88 | 0.92 | 0.90 |
-| G1 | 0.00 | 0.01 | 0.01 |
-| G2 | -0.01 | -0.01 | -0.00 |
-| inflation | -0.04 | -0.04 | -0.06 |
-| distribution | -0.02 | -0.02 | -0.03 |
-| expectations | 0.01 | -0.01 | -0.01 |
-| demand | 0.00 | 0.00 | 0.00 |
-| financial | 0.11 | 0.06 | 0.06 |
-| forecast | 3.28 | 3.24 | 3.19 |
+| history | 0.97 | 0.99 | 1.00 |
+| G1 | -0.00 | -0.01 | -0.01 |
+| G2 | 0.03 | 0.03 | 0.01 |
+| inflation | -0.13 | -0.14 | -0.14 |
+| distribution | -0.00 | -0.00 | -0.00 |
+| expectations | -0.05 | -0.04 | -0.08 |
+| demand | -0.02 | -0.04 | -0.04 |
+| financial | 0.01 | 0.02 | 0.02 |
+| forecast | 3.16 | 3.14 | 3.08 |
 
 
 ### News decomposition
 
-The factor system in state-space form (loadings from the PCA, VAR(1) dynamics, diagonal idiosyncratic variances), filtered month by month through the ragged edge (Sep 2026). News in each released series is its surprise relative to the previous month's information set; the revision of the factor-only 12m forecast is attributed through the Kalman gain. Latest-vintage values, so data revisions are ignored and publication lags enter only at the ragged edge. Filtered factors track the PCA factors (correlations G1 1.00, G2 0.99, B_infl 0.99, B_dist 0.98, B_exp 0.99, B_dem 0.98, B_fin 0.98). Sep 2026 revision +0.15 pp (exp +0.16, fin -0.01); cumulative over 12 months +0.37 pp; largest monthly revision Jun 2026 (0.72).
+The factor system in state-space form (loadings from the PCA, VAR(1) dynamics, diagonal idiosyncratic variances), filtered month by month through the ragged edge (Sep 2026). News in each released series is its surprise relative to the previous month's information set; the revision of the factor-only 12m forecast is attributed through the Kalman gain. Latest-vintage values, so data revisions are ignored and publication lags enter only at the ragged edge. Filtered factors track the PCA factors (correlations G1 1.00, G2 0.97, B_infl 0.96, B_dist 0.98, B_exp 0.97, B_dem 0.97, B_fin 0.96). Sep 2026 revision +0.08 pp (exp +0.10, fin -0.01); cumulative over 12 months +0.14 pp; largest monthly revision Jun 2026 (0.57).
 
 ![News decomposition of forecast revisions.](figures/news.png)
 *News decomposition of forecast revisions.*
@@ -252,14 +299,14 @@ The factor system in state-space form (loadings from the PCA, VAR(1) dynamics, d
 
 Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.
 
-A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains 40% of their variance): how poorly can today's signals be reconciled by one common state? C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.
+A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains 46% of their variance): how poorly can today's signals be reconciled by one common state? C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.
 
 *Disagreement measures, current value and history*
 
 |  | current | percentile | median | p90 |
 |---|---|---|---|---|
-| D_sd (A) | 0.59 | 20.44 | 0.78 | 1.42 |
-| D_res (B) | 0.55 | 41.08 | 0.61 | 1.16 |
+| D_sd (A) | 0.56 | 19.84 | 0.80 | 1.56 |
+| D_res (B) | 0.57 | 46.49 | 0.59 | 0.99 |
 | D_infl_12m (C) | 0.90 | 53.46 | 0.84 | 2.15 |
 | D_infl_3m (C) | 1.27 | 41.95 | 1.39 | 3.25 |
 
@@ -274,27 +321,27 @@ A: cross-sectional SD of the seven standardized factors. B: residual RMS after f
 
 When in the past did the configuration of inflation signals look most like today?
 
-Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is 1.70 (median change +0.09 pp, decelerating in 40%). Matching on the pattern of disagreement instead gives 2006-12, 2006-03, 1993-10, 2005-06, 1997-09 (median change -0.01). Not causal.
+Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is 1.68 (median change -0.03 pp, decelerating in 53%). Matching on the pattern of disagreement instead gives 2006-09, 2004-04, 2006-03, 2003-09, 2007-07 (median change -0.03). Not causal.
 
 *Analogs on the factor vector, origin Jul 2026*
 
 |  | distance | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
 |---|---|---|---|---|---|---|---|
-| 2014-03 | 1.41 | 1.44 | 1.81 | 1.60 | 1.27 | -0.16 | 0.52 |
-| 2006-03 | 1.46 | 2.14 | 3.23 | 2.53 | 2.35 | 0.20 | 0.27 |
-| 2004-04 | 1.47 | 1.99 | 1.65 | 1.71 | 2.09 | 0.09 | 0.50 |
-| 2007-07 | 1.48 | 2.02 | 2.73 | 2.55 | 2.22 | 0.20 | 0.28 |
-| 2006-12 | 1.53 | 2.29 | 2.88 | 2.29 | 2.37 | 0.09 | 0.60 |
-| 2005-07 | 1.55 | 2.09 | 2.36 | 2.34 | 2.51 | 0.42 | 0.38 |
-| 2013-01 | 1.57 | 1.58 | 1.00 | 1.33 | 1.44 | -0.14 | 0.59 |
-| 2017-06 | 1.57 | 1.56 | 1.21 | 1.49 | 1.92 | 0.35 | 0.59 |
-| 2016-07 | 1.59 | 1.59 | 1.75 | 1.73 | 1.49 | -0.09 | 0.41 |
-| 2019-05 | 1.62 | 1.55 | 1.65 | 1.39 | 0.99 | -0.56 | 0.48 |
-| 2018-06 | 1.63 | 1.92 | 1.31 | 1.69 | 1.64 | -0.27 | 0.60 |
-| 2015-11 | 1.66 | 1.19 | 1.66 | 1.95 | 1.70 | 0.51 | 0.55 |
-| 2003-10 | 1.69 | 1.55 | 2.07 | 2.21 | 1.96 | 0.41 | 0.36 |
-| 2015-04 | 1.69 | 1.29 | 1.36 | 1.20 | 1.51 | 0.22 | 0.54 |
-| 2014-09 | 1.69 | 1.54 | 0.98 | 0.95 | 1.22 | -0.32 | 0.64 |
+| 2006-08 | 0.96 | 2.64 | 1.54 | 2.28 | 1.97 | -0.67 | 0.46 |
+| 2004-04 | 1.00 | 1.99 | 1.65 | 1.71 | 2.09 | 0.09 | 0.55 |
+| 2003-09 | 1.03 | 1.45 | 1.78 | 2.06 | 1.93 | 0.48 | 0.45 |
+| 2007-07 | 1.14 | 2.02 | 2.73 | 2.55 | 2.22 | 0.20 | 0.32 |
+| 2005-01 | 1.21 | 2.15 | 2.11 | 1.90 | 2.12 | -0.03 | 0.42 |
+| 2006-02 | 1.23 | 2.12 | 3.32 | 2.77 | 2.52 | 0.41 | 0.44 |
+| 2014-01 | 1.48 | 1.44 | 1.47 | 1.64 | 1.20 | -0.24 | 0.55 |
+| 2005-07 | 1.52 | 2.09 | 2.36 | 2.34 | 2.51 | 0.42 | 0.35 |
+| 2014-07 | 1.53 | 1.60 | 1.03 | 0.76 | 1.17 | -0.43 | 0.57 |
+| 2018-05 | 1.65 | 1.96 | 0.93 | 1.52 | 1.55 | -0.41 | 0.51 |
+| 2019-03 | 1.78 | 1.60 | 1.94 | 1.58 | 1.52 | -0.09 | 0.42 |
+| 2013-01 | 1.85 | 1.58 | 1.00 | 1.33 | 1.44 | -0.14 | 0.66 |
+| 2017-01 | 1.88 | 1.85 | 1.36 | 1.25 | 1.62 | -0.23 | 0.50 |
+| 2013-07 | 1.93 | 1.48 | 1.58 | 1.55 | 1.60 | 0.12 | 0.78 |
+| 2020-01 | 1.96 | 1.58 | -0.82 | 0.82 | 1.68 | 0.10 | 0.49 |
 
 
 ## 8. Supply-like versus demand-like episodes and disagreement
@@ -307,32 +354,32 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 
 |  | months | D_res mean | D_res median | share D_res > p75 | next-12m change, median |
 |---|---|---|---|---|---|
-| adverse-supply-like (infl high, demand weak) | 109 | 0.66 | 0.63 | 0.31 | -0.42 |
-| demand-like (infl high, demand high) | 140 | 0.75 | 0.66 | 0.31 | -0.23 |
-| favorable-supply-like (infl low, demand strong) | 110 | 0.52 | 0.51 | 0.07 | -0.01 |
-| weak-demand (infl low, demand weak) | 140 | 0.76 | 0.64 | 0.29 | 0.04 |
+| adverse-supply-like (infl high, demand weak) | 105 | 0.59 | 0.54 | 0.27 | -0.43 |
+| demand-like (infl high, demand high) | 144 | 0.70 | 0.60 | 0.28 | -0.23 |
+| favorable-supply-like (infl low, demand strong) | 106 | 0.56 | 0.55 | 0.09 | -0.01 |
+| weak-demand (infl low, demand weak) | 144 | 0.73 | 0.65 | 0.32 | 0.04 |
 
 *Contemporaneous correlates of disagreement (standardized regressors, HAC t)*
 
 |  | corr | t (HAC) |
 |---|---|---|
-| headline_core_gap | -0.02 | -0.15 |
-| flex_less_sticky | 0.08 | 0.39 |
-| xs_sd_3m | 0.60 | 7.23 |
-| oil_12m | -0.11 | -0.67 |
-| abs_oil_12m | 0.45 | 4.15 |
+| headline_core_gap | -0.11 | -0.67 |
+| flex_less_sticky | -0.01 | -0.06 |
+| xs_sd_3m | 0.62 | 5.85 |
+| oil_12m | -0.20 | -1.14 |
+| abs_oil_12m | 0.49 | 4.16 |
 
 *Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
-| beta D_res (pp per sd) | 0.10 | 0.12 | 0.15 |
-| t | 1.04 | 1.36 | 1.45 |
-| gamma pi12 | -0.20 | -0.24 | -0.31 |
-| t  | -3.42 | -3.79 | -4.13 |
-| delta B_dem | -0.02 | -0.01 | -0.02 |
-| t   | -0.47 | -0.25 | -0.39 |
-| R2 | 0.07 | 0.11 | 0.20 |
+| beta D_res (pp per sd) | 0.06 | 0.07 | 0.11 |
+| t | 0.95 | 1.34 | 1.87 |
+| gamma pi12 | -0.18 | -0.21 | -0.29 |
+| t  | -3.28 | -3.43 | -3.91 |
+| delta B_dem | -0.06 | -0.05 | -0.05 |
+| t   | -1.88 | -1.33 | -0.97 |
+| R2 | 0.08 | 0.12 | 0.20 |
 
 
 ## 9. Additional evidence
@@ -343,8 +390,8 @@ Four further pieces of evidence feed the answers in the next section: the probab
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
-| P(lower) normal approx. | 0.50 | 0.52 | 0.53 |
-| P(lower) logit | 0.66 | 0.74 | 0.75 |
+| P(lower) normal approx. | 0.55 | 0.56 | 0.58 |
+| P(lower) logit | 0.65 | 0.69 | 0.69 |
 | unconditional | 0.51 | 0.57 | 0.57 |
 
 *Horse race: each statistic added to core PCE 12m; relative RMSFE < 1 beats core PCE 12m alone*
@@ -406,8 +453,8 @@ Four further pieces of evidence feed the answers in the next section: the probab
 ### 2. Accelerating or decelerating
 
 - 10 of 11 measures have 3m below 12m; core PCE 3m-12m gap -0.3 pp, 6m-12m +0.1.
-- Factor model: 3.3 / 3.3 / 3.2 over 3/6/12m against a 12m rate of 3.3: decelerating (-0.08 pp at 12m).
-- P(lower over 3/6/12m): normal approximation 50% / 52% / 53%; logit 66% / 74% / 75% (unconditional about 57%).
+- Factor model: 3.2 / 3.2 / 3.1 over 3/6/12m against a 12m rate of 3.3: decelerating (-0.19 pp at 12m).
+- P(lower over 3/6/12m): normal approximation 55% / 56% / 58%; logit 65% / 69% / 69% (unconditional about 57%).
 
 
 ### 3. Breadth
@@ -422,7 +469,7 @@ Four further pieces of evidence feed the answers in the next section: the probab
 
 - High-breadth months (top quartile): core PCE averaged 3.3% over the next 12m and stayed above 2.5% in 79% of cases, against 1.8% and 11% for low breadth. Inflation stayed elevated, but it was already high.
 - Given core PCE 12m and 3m, breadth (3m) has HAC t = +1.0 / +0.7 / +0.7 for the 3/6/12m change and relative RMSFE 1.01 / 1.01 / 1.02: little incremental content. Breadth at 12m: t -0.0, rel RMSFE 1.04.
-- Against median CPI (rel RMSFE 12m 1.02) and trimmed PCE (1.08), breadth is not more useful. In the factor regression the distribution block is the one block with a significant coefficient (+0.11 (+3.3) at 12m).
+- Against median CPI (rel RMSFE 12m 1.02) and trimmed PCE (1.08), breadth is not more useful. In the factor regression the distribution block is the one block with a significant coefficient (+0.07 (+2.5) at 12m).
 
 
 ### 5. Most useful current statistics
@@ -434,66 +481,66 @@ Four further pieces of evidence feed the answers in the next section: the probab
 ### 6. Recent favorable readings: signal or noise
 
 - Spells with core PCE 3m at least 1 pp below 12m: 8 since 1985; a genuine turning point (12m rate down at least 0.5 pp a year later) in 38%, reacceleration within six months in 50%.
-- Today's gap is -0.29 pp (below the event threshold). The factor-space analogs saw a median 12m change of +0.09 pp with deceleration in 40% of cases: closer to a soft patch than a sustained disinflation.
+- Today's gap is -0.29 pp (below the event threshold). The factor-space analogs saw a median 12m change of -0.03 pp with deceleration in 53% of cases: closer to a soft patch than a sustained disinflation.
 
 
 ### 7. Are financial conditions restrictive
 
-- Financial factor (+ = looser) +0.69 z, 75th percentile: on the loose side of history.
-- 67% of 12 indicators sit on the loose side of their median: loose = fedfunds, nfci, vix, baa_spread, ebp, equity_12m_ret, usd_12m, sloos_ci; tight = real_10y_clev, term_2s10s, term_premium_10y, mortgage_spread.
-- Predictive content given inflation history: +0.07 (+1.7) / +0.03 (+0.9) / +0.03 (+0.7) at 3/6/12m (coefficient, HAC t); contribution to today's 12m forecast +0.06 pp.
+- Financial factor (+ = looser) +0.34 z, 62nd percentile: near its historical middle.
+- 83% of 12 indicators sit on the loose side of their median: loose = fedfunds, dgs10, nfci, vix, baa_spread, ebp, equity_12m_ret, usd_12m, mortgage30, sloos_ci; tight = real_10y_clev, term_premium_10y.
+- Predictive content given inflation history: +0.02 (+0.3) / +0.02 (+0.3) / +0.02 (+0.3) at 3/6/12m (coefficient, HAC t); contribution to today's 12m forecast +0.02 pp.
 
 
 ### 8. Is demand pressure still inflationary
 
-- Demand factor -0.07 z (35th percentile); G2 -0.07. Predictive content given history: -0.02 (-0.6) / -0.00 (-0.1) / -0.01 (-0.2); contribution to the 12m forecast +0.00 pp.
-- Drivers today (loading x z): sentiment -0.46, claims_log +0.35, unrate +0.18, capu -0.17, comp_12m -0.14. Unemployment 4.1 (18th pct), V/U 1.05, wages 3.2%, real PCE 6m 3.0%.
+- Demand factor -0.44 z (24th percentile); G2 +0.21. Predictive content given history: +0.03 (+0.6) / +0.05 (+1.2) / +0.05 (+0.9); contribution to the 12m forecast -0.04 pp.
+- Drivers today (loading x z): sentiment -0.64, claims_log +0.41, unrate +0.28, capu -0.18, comp_12m -0.16. Unemployment 4.1 (18th pct), V/U 1.05, wages 3.2%, real PCE 6m 3.0%.
 
 
 ### 9. Are expectations a problem
 
 - Levels: Michigan 1y 4.2 (79th pct), SPF 4q 2.3 (48th), 5y breakeven 2.37 (75th), 5y5y 2.33 (55th), SPF 10y 2.3.
 - Disagreement: SPF cross-sectional SD 0.94 (95th pct); households minus professionals +1.9 pp (96th).
-- Predictive content: expectations block given history -0.01 (-0.1) at 12m; SPF dispersion as a single addition, rel RMSFE 1.07 (t +1.5); Michigan 1y 1.03 (t -0.1). Contribution to the 12m forecast -0.01 pp; the block is the most inflationary residual in the disagreement decomposition (+1.08).
+- Predictive content: expectations block given history -0.04 (-0.5) at 12m; SPF dispersion as a single addition, rel RMSFE 1.07 (t +1.5); Michigan 1y 1.03 (t -0.1). Contribution to the 12m forecast -0.08 pp; the block is the most inflationary residual in the disagreement decomposition (+1.17).
 
 
 ### 10. What drives the current forecast
 
-- 12m forecast 3.2: history +0.90, all factors together -0.03 (table in section 5).
-- Pushing up: history +0.90, G1 +0.01, financial +0.06; pushing down: inflation -0.06, distribution -0.03, expectations -0.01.
+- 12m forecast 3.1: history +1.00, all factors together -0.25 (table in section 5).
+- Pushing up: history +1.00, G2 +0.01, financial +0.02; pushing down: inflation -0.14, expectations -0.08, demand -0.04.
 
 
 ### 11. Agreement or disagreement
 
-- Cross-block disagreement 0.55, 41st percentile (SD across factors 20th). Outliers: B_exp +1.08, B_fin +0.87, B_infl -0.36.
-- Within inflation measures 53rd percentile; between price and non-price blocks 41st: similar within and between; overall not historically unusual.
+- Cross-block disagreement 0.57, 46th percentile (SD across factors 20th). Outliers: B_exp +1.17, B_infl +0.69, B_fin +0.52.
+- Within inflation measures 53rd percentile; between price and non-price blocks 46th: similar within and between; overall not historically unusual.
 
 
 ### 12. Historical analogs
 
-- Closest configurations: 2014-03, 2006-03, 2004-04, 2007-07, 2006-12, 2005-07.
-- Subsequent 3/6/12m core PCE (median) 1.7 / 1.7 / 1.7; 12m change median +0.09. Outcomes: sustained disinflation 7%, reacceleration 7%, mixed 87%.
+- Closest configurations: 2006-08, 2004-04, 2003-09, 2007-07, 2005-01, 2006-02.
+- Subsequent 3/6/12m core PCE (median) 1.6 / 1.6 / 1.7; 12m change median -0.03. Outcomes: sustained disinflation 7%, reacceleration 0%, mixed 93%.
 
 
 ### 13. Disagreement and supply-versus-demand
 
-- Mean disagreement by regime: adverse-supply-like 0.66, demand-like 0.75, favorable-supply-like 0.52, weak-demand 0.76: not higher in supply-like than in demand-led episodes.
-- Correlates: cross-sectional dispersion +0.60 (t +7.2), |oil shock| +0.45, flexible minus sticky +0.08, headline-core gap -0.02.
-- Given current inflation and demand, a 1-sd rise in disagreement changes the subsequent 12m inflation change by +0.15 pp (t +1.5): no faster mean reversion. Descriptive, not structural.
+- Mean disagreement by regime: adverse-supply-like 0.59, demand-like 0.70, favorable-supply-like 0.56, weak-demand 0.73: not higher in supply-like than in demand-led episodes.
+- Correlates: cross-sectional dispersion +0.62 (t +5.9), |oil shock| +0.49, flexible minus sticky -0.01, headline-core gap -0.11.
+- Given current inflation and demand, a 1-sd rise in disagreement changes the subsequent 12m inflation change by +0.11 pp (t +1.9): no faster mean reversion. Descriptive, not structural.
 
 
 ### 14. Implications for the Fed debate
 
-- Projected core PCE stays above 2% at all horizons (3.3 / 3.3 / 3.2); projected change -0.08 pp over 12m (history-only model -0.26).
-- Evidence for deceleration: 10/11 measures decelerating, P(lower in 12m) 53%, analogs decelerating 40%: moderate.
-- Uncertainty: 90% band [1.6, 4.8]; block disagreement at the 41st percentile.
-- Risks implied by the outputs: persistence high (forecast level); reacceleration elevated (expectations residual +1.08, historical reacceleration frequency 50%); premature tightening limited (demand factor at the 35th percentile).
+- Projected core PCE stays above 2% at all horizons (3.2 / 3.2 / 3.1); projected change -0.19 pp over 12m (history-only model -0.26).
+- Evidence for deceleration: 10/11 measures decelerating, P(lower in 12m) 58%, analogs decelerating 53%: moderate.
+- Uncertainty: 90% band [1.6, 4.6]; block disagreement at the 46th percentile.
+- Risks implied by the outputs: persistence high (forecast level); reacceleration elevated (expectations residual +1.17, historical reacceleration frequency 50%); premature tightening notable (demand factor at the 24th percentile).
 
 
 ### 15. Warsh, Waller, Kashkari
 
-- Warsh (inflation broad, policy not restrictive): breadth at 12m at the 65th percentile (56% above 3%) and financial conditions at the 75th percentile on the loose side, so both legs of the argument find support; demand at the 35th percentile does not.
-- Waller (underlying inflation declining): 10/11 measures show 3m below 12m; the model projects -0.08 pp over 12m with P(lower) 53%, so the momentum is only partly confirmed; comparable gaps were turning points 38% of the time.
-- Kashkari (entrenchment from waiting): the 12m forecast stays at 3.2%, the expectations block is the most inflationary residual (+1.08) with households +1.9 pp above professionals, and analogs reaccelerated in 7% of cases: supports the concern on level and expectations, less so on historical reacceleration.
+- Warsh (inflation broad, policy not restrictive): breadth at 12m at the 65th percentile (56% above 3%) and financial conditions at the 62nd percentile on the loose side, so both legs of the argument find support; demand at the 24th percentile does not.
+- Waller (underlying inflation declining): 10/11 measures show 3m below 12m; the model projects -0.19 pp over 12m with P(lower) 58%, so the momentum is only partly confirmed; comparable gaps were turning points 38% of the time.
+- Kashkari (entrenchment from waiting): the 12m forecast stays at 3.1%, the expectations block is the most inflationary residual (+1.17) with households +1.9 pp above professionals, and analogs reaccelerated in 0% of cases: supports the concern on level and expectations, less so on historical reacceleration.
 
 Caveat: latest-vintage data and full-sample factor loadings; the news decomposition is pseudo-real-time (no data revisions; publication lags only at the ragged edge). Rule-based wording thresholds are in the answers section of run.py.

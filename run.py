@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.alpha": 0.3, "font.size": 9})
 
 HERE = Path(__file__).resolve().parent; CACHE = HERE / "cache"; FIG = HERE / "figures"
-sys.path.insert(0, str(HERE)); from text import TEXT, READING   # editable prose lives in text.py
+sys.path.insert(0, str(HERE)); from text import TEXT, READING, BLOCK_PROSE   # editable prose lives in text.py
 for d in (CACHE, FIG): d.mkdir(exist_ok=True)
 REFRESH = "--refresh" in sys.argv
 START = "1985-01-01"; OOS_START = "2000-01-01"; H = [3, 6, 12, 24]
@@ -186,17 +186,12 @@ EBP = load_ebp()
 m = lambda sid, how="mean": to_monthly(RAW[sid], how)
 
 R.h(1, "US inflation signals: agreement, disagreement, and forecasting")
-R.p(f"Report generated {pd.Timestamp.today():%B %d, %Y}; data through {max(v.index[-1] for v in RAW.values()):%B %Y}.")
 R.summary_slot()
 R.h(2, "Introduction")
-R.p(TEXT["p07_the_question_is_what_the_curre"])
+R.p(TEXT["p07_we_ask_what_the_current_config"])
+R.p(TEXT["p07b_the_motivation_is_the_current"])
 R.p(TEXT["p01_all_of_these_are_treated_as_po"])
-R.p(TEXT["p08_the_approach_has_five_steps_p"])
-R.note(TEXT["p09_data_are_latest_vintage_fred_s"])
 R.h(2, "1. The five blocks")
-R.p(f"{(VER['status'] == 'ok').sum()} of {len(VER)} FRED series were downloaded and verified (first and last observations are in cache/series_verification.csv). "
-    f"Series starting after 1995 and therefore imputed in the early sample: {', '.join(VER.index[VER['flag'] == 'short history'])}. The panel runs from {START[:4]}, when the breadth block first has at least 20 categories.")
-R.p(TEXT["p10_for_each_block_the_same_diagno"])
 # ------------------------------------------------------------------ block EDA
 import re
 GROUPS = {"infl": [("short-horizon rate (1m/3m)", r"_(1|3)m$"), ("6m rate", r"_6m$"), ("12m rate", r"_12m$")],
@@ -244,13 +239,14 @@ def block_eda(name, df, ref, flip=False, title=""):
     heat(ax[1, 1], res1, corr_panel(ax[1, 0], l1, "PC1"), "one-factor"); heat(ax[2, 1], res2, corr_panel(ax[2, 0], l2, "PC2"), "two-factor")
     plt.tight_layout(); R.fig(fig, f"block_{name}", title)
     DESC[(name, 1)] = describe_factor(name, l1); DESC[(name, 2)] = describe_factor(name, l2)
-    R.p(f"PC1 is {DESC[(name, 1)]}. {READING.get((name, 1), '')}")
-    R.p(f"PC2 is {DESC[(name, 2)]}. {READING.get((name, 2), '')}")
-    top_res = res1.iloc[-1].dropna(); top_res = top_res.reindex(top_res.abs().sort_values().index[-3:][::-1]); res = res1
-    dim = "one dominant dimension" if ex[0] > 2 * ex[1] else "at least two dimensions of comparable size"
-    R.p(f"{Zb.shape[1]} variables from {Zb.index[0]:%Y-%m}. The first three components explain {100*ex[0]:.0f}, {100*ex[1]:.0f}, and {100*ex[2]:.0f} percent of the variance, which points to {dim}. "
-        f"The first component stands at {f1z.iloc[-1]:+.1f} standard deviations today, the {ordinal(pct_rank(f1))} percentile of its history. The largest deviations from what the common factor implies are "
-        + ", ".join(f"{vname(c)} ({v:+.1f} sd)" for c, v in top_res.items()) + ".")
+    for para in BLOCK_PROSE[name]: R.p(para)
+    # The generated descriptions are no longer printed in the report: the block prose in text.py is
+    # written by hand. They go to the console instead, as the check that the prose still fits the data.
+    top_res = res1.iloc[-1].dropna(); top_res = top_res.reindex(top_res.abs().sort_values().index[-3:][::-1])
+    print(f"[{name}] PC1 {f1z.iloc[-1]:+.2f}z ({ordinal(pct_rank(f1))} pct), PC2 {f2z.iloc[-1]:+.2f}z ({ordinal(pct_rank(f2z))} pct); var {100*ex[0]:.0f}/{100*ex[1]:.0f}/{100*ex[2]:.0f}%")
+    print(f"        PC1 {DESC[(name, 1)]}")
+    print(f"        PC2 {DESC[(name, 2)]}")
+    print(f"        largest residuals: " + ", ".join(f"{vname(c)} ({v:+.1f} sd)" for c, v in top_res.items()))
 
 # ------------------------------------------------------------------ block 1: inflation measures
 B1 = {}
@@ -269,7 +265,6 @@ for m1, m12, tag, name, src in RATES:
 B1 = pd.DataFrame(B1)
 R.h(3, "Block 1: inflation measures")
 R.table(meta_table(1), "Block 1 indicators", small=True)
-R.p(TEXT["p11_only_levels_at_several_horizon"])
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")
 
 # ------------------------------------------------------------------ block 2: distribution
@@ -295,9 +290,6 @@ R.table(pd.DataFrame([[g, c] for g, c in [("Food (7)", "cereals; meats, poultry,
     ("Services (11)", "rent; owners' equivalent rent; lodging away from home; water and sewer; professional medical and hospital services; vehicle maintenance; public transportation; tuition and childcare; personal care; other services")]],
     columns=["Group", "Categories"]).set_index("Group"), "Block 2 universe: 34 CPI expenditure categories (FRED, seasonally adjusted)", small=True)
 R.table(meta_table(2), "Block 2 indicators", small=True)
-R.p(f"Cross-sectional statistics of annualized 3/6/12-month inflation across {P.shape[1]} CPI expenditure categories from FRED (SA), selected so that no category nests another; "
-    "unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. "
-    "Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.")
 block_eda("dist", B2.drop(columns="n_cats"), "share_gt3_12m", title="Block 2, price-change distribution")
 
 # ------------------------------------------------------------------ block 3: expectations
@@ -311,7 +303,6 @@ for short, name, src, tr in [("mich_1y", "Michigan 1-year expected inflation, me
     reg(3, short, name, src, tr)
 R.h(3, "Block 3: inflation expectations")
 R.table(meta_table(3), "Block 3 indicators", small=True)
-R.p(TEXT["p12_levels_of_expected_inflation_f"])
 block_eda("exp", B3, "mich_1y", title="Block 3, expectations")
 
 # ------------------------------------------------------------------ block 4: demand and labor
@@ -328,7 +319,6 @@ for short, name, src, tr in [("unrate", "Unemployment rate", "BLS via FRED", "le
     reg(4, short, name, src, tr)
 R.h(3, "Block 4: demand and labor")
 R.table(meta_table(4), "Block 4 indicators", small=True)
-R.p(TEXT["p13_rates_in_levels_quantities_as"])
 block_eda("dem", B4, "payrolls_12m", title="Block 4, demand and labor")
 
 # ------------------------------------------------------------------ block 5: financial
@@ -346,7 +336,6 @@ for short, name, src, tr in [("fedfunds", "Effective federal funds rate", "Fed v
     reg(5, short, name, src, tr)
 R.h(3, "Block 5: financial conditions and risk pricing")
 R.table(meta_table(5), "Block 5 indicators", small=True)
-R.p(TEXT["p14_monthly_averages_of_daily_data"])
 block_eda("fin", B5, "nfci", flip=True, title="Block 5, financial conditions (+ = looser)")
 
 # =============================================================================== panel and factors
@@ -632,11 +621,11 @@ qa("15. Warsh, Waller, Kashkari", [
    f"{'supports' if (h12['forecast M3'] > 2.75 and RESID.iloc[-1]['B_exp'] > 0.5) else 'partly supports'} the concern on level and expectations, {'less so' if np.mean(outc == 'reacceleration') < 0.3 else 'and'} on historical reacceleration."])
 R.p(TEXT["p06_caveat_latest_vintage_data_an"])
 R.summary([
-    f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} over 3 months; the median across eleven measures is {common12:.1f}, and {n_dec} of {len(MEAS)} measures show 3m below 12m.",
-    f"The factor model projects {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} percent over 3/6/12 months, a change of {h12['forecast change vs 12m']:+.2f} pp at 12 months; the probability of lower inflation over 12 months is {p12:.0%} (normal approximation) to {PROB.loc['P(lower) logit', '12m']:.0%} (logit).",
-    f"Out of sample the factors do not beat inflation history (relative RMSFE {RM.loc[(12, 'M3 +global+block'), 'rel_RMSFE']:.2f} at 12 months); the distribution block is the only factor with a significant coefficient.",
-    f"Breadth: {100*b12s.iloc[-1]:.0f} percent of categories above 3 percent at 12 months ({ordinal(pct_rank(b12s))} percentile), {100*b3.iloc[-1]:.0f} percent at 3 months ({ordinal(pct_rank(b3))}).",
-    f"Financial conditions sit at the {ordinal(pctF['B_fin'])} percentile on the loose side; demand at the {ordinal(pctF['B_dem'])}; expectations are the outlier, with households {exp_now.loc['mich_less_spf', 'latest']:+.1f} pp above professionals and SPF dispersion at the {ordinal(exp_now.loc['spf_cpi_4q_sd', 'percentile'])} percentile.",
-    f"Cross-block disagreement is at the {ordinal(pct_rank(D_res))} percentile; the closest analogs are {', '.join(A1.index[:4])}, after which core PCE changed by {a1.median():+.2f} pp (median) over 12 months.",
-    f"Current regime: {regime.iloc[-1]}."])
+    f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",
+    TEXT["s02_we_collect_data_across_five_bl"],
+    f"The dynamic factor model that leverages data across all five blocks projects core PCE inflation of {today['3m']['forecast M3']:.1f} / {today['6m']['forecast M3']:.1f} / {h12['forecast M3']:.1f} percent annualized over the next 3/6/12 months, "
+    f"that is, a {'deceleration' if h12['forecast change vs 12m'] < 0 else 'acceleration'} of {abs(h12['forecast change vs 12m']):.1f} pp over the 12 months, and inflation is not expected to return to target over the near term.",
+    TEXT["s04_the_first_common_factor_in_eac"],
+    TEXT["s05_while_we_dont_see_evidence_of"],
+    TEXT["s06_across_the_second_principal_co"]])
 R.write("report"); print(f"report.md / report.html written in {time.time()-t0:.0f}s; {len(list(FIG.glob('*.png')))} figures")

@@ -1,35 +1,26 @@
 
 # US inflation signals: agreement, disagreement, and forecasting
 
-Report generated September 08, 2026; data through September 2026.
-
 **Summary**
 
-- Core PCE runs at 3.3 percent over 12 months and 3.0 over 3 months; the median across eleven measures is 2.7, and 10 of 11 measures show 3m below 12m.
-- The factor model projects 3.2 / 3.2 / 3.1 percent over 3/6/12 months, a change of -0.19 pp at 12 months; the probability of lower inflation over 12 months is 58% (normal approximation) to 69% (logit).
-- Out of sample the factors do not beat inflation history (relative RMSFE 1.09 at 12 months); the distribution block is the only factor with a significant coefficient.
-- Breadth: 56 percent of categories above 3 percent at 12 months (65th percentile), 45 percent at 3 months (45th).
-- Financial conditions sit at the 62nd percentile on the loose side; demand at the 24th; expectations are the outlier, with households +1.9 pp above professionals and SPF dispersion at the 95th percentile.
-- Cross-block disagreement is at the 46th percentile; the closest analogs are 2006-08, 2004-04, 2003-09, 2007-07, after which core PCE changed by -0.03 pp (median) over 12 months.
-- Current regime: adverse-supply-like (infl high, demand weak).
+- Core PCE runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.
+- We collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.
+- The dynamic factor model that leverages data across all five blocks projects core PCE inflation of 3.2 / 3.2 / 3.1 percent annualized over the next 3/6/12 months, that is, a deceleration of 0.2 pp over the 12 months, and inflation is not expected to return to target over the near term.
+- The first common factor in each of the five blocks is near its historical average, although we see some notable divergence in the second factors.
+- While we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.
+- Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.
 
 
 ## Introduction
 
-The question is what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and whether today's configuration resembles past episodes. The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
+We ask what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.
 
-All of these are treated as potentially useful signals for future inflation rather than sorted into 'measures of underlying inflation' and 'predictors'. A measure of underlying inflation is useful partly because it extracts the persistent, forecast-relevant component of current inflation, so the two roles are not distinct.
+The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
 
-The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.
-
-> Data are latest-vintage FRED series (CSV endpoint, no key). Two inputs are not on FRED and are flagged where used: the Survey of Professional Forecasters individual CPI forecasts (Philadelphia Fed) and the excess bond premium (Federal Reserve). Pseudo-out-of-sample results computed on revised data are not real-time results; the data loader is isolated so that ALFRED vintages can be substituted later.
+All of these are treated as potentially useful signals for future inflation. Our analysis takes the following steps. Predictors are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, and 12 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.
 
 
 ## 1. The five blocks
-
-92 of 92 FRED series were downloaded and verified (first and last observations are in cache/series_verification.csv). Series starting after 1995 and therefore imputed in the early sample: T5YIE, T10YIE, T5YIFR, JTSJOL, JTSQUR, ECIWAG, DFII10, DTWEXBGS, CUSR0000SEHB, CUSR0000SEHG. The panel runs from 1985, when the breadth block first has at least 20 categories.
-
-For each block the same diagnostic is shown: the variables are standardized, a principal-components decomposition is computed, and four panels report the scree (evidence of one versus several dimensions), the correlation of each variable with the first component (closer to one means more aligned with the block's common factor), the first component over time as a one-line summary of the block, and the residuals from the one-factor fit as a heatmap (whether recent months look different from history).
 
 
 ### Block 1: inflation measures
@@ -52,16 +43,12 @@ For each block the same diagnostic is shown: the variables are standardized, a p
 | cpi_flex_{1,3,6,12}m | Flexible-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
 | cpi_core_flex_{1,3,6,12}m | Core flexible-price CPI | Atlanta Fed via FRED | published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate |
 
-Only levels at several horizons enter the block. Momentum and acceleration (3m minus 12m, changes in the 12m rate) are deliberately not included as separate indicators: they are linear combinations of what is already in the panel, and the PCA recovers them itself as contrasts, with opposite loadings on short- and long-horizon rates. The forecasting regressions in section 3 use momentum terms computed directly from core PCE.
-
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-PC1 is aligned positively with 6m rate (3), short-horizon rate (1m/3m) (3), 12m rate (2); e.g. cpi_trim_6m, pce_trim_6m, pce_core_12m; inverted: none. Reading: the common level of inflation across headline, core, trimmed and median measures at every horizon; a level factor.
+PC1 is the general inflation factor, and comoves positively with all inflation measures, and correlation is highest with recent core and trimmed mean inflation measures. This measure is overall about neutral.
 
-PC2 is aligned positively with short-horizon rate (1m/3m) (6), 6m rate (2); e.g. cpi_flex_3m, cpi_flex_6m, cpi_flex_1m; inverted: none. Reading: short-horizon flexible-price inflation (1m to 6m), the volatile food, energy and goods component that moves independently of the common level; the PCA forms the momentum contrast itself.
-
-52 variables from 1985-01. The first three components explain 63, 14, and 4 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 58th percentile of its history. The largest deviations from what the common factor implies are pce_6m (+1.1 sd), pce_12m (+1.0 sd), cpi_flex_3m (-1.0 sd).
+PC2 is capturing momentum, loading positively on 3m inflation measures and negatively on 12m inflation measures, so PC2 is negative when inflation is decelerating. Inflation was recently accelerating since the Iran war, but has now come back down to about neutral.
 
 
 ### Block 2: price-change distribution
@@ -89,16 +76,12 @@ PC2 is aligned positively with short-horizon rate (1m/3m) (6), 6m rate (2); e.g.
 | xs_median_{3,6,12}m | median category inflation | 34 CPI categories, BLS via FRED | computed on annualized 3/6/12-month category inflation |
 | upper_tail_share_{3,6,12}m | upper-tail share | 34 CPI categories, BLS via FRED | share of the sum of absolute category inflation coming from the top decile; computed on annualized 3/6/12-month category inflation |
 
-Cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI expenditure categories from FRED (SA), selected so that no category nests another; unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.
-
 ![Block 2, price-change distribution](figures/block_dist.png)
 *Block 2, price-change distribution*
 
-PC1 is aligned positively with breadth (6), central tendency (2); e.g. xs_median_6m, share_gt4_6m, share_gt3_6m; inverted: none. Reading: breadth and central tendency of the price-change distribution, how many categories are rising fast; a broad-inflation factor.
+PC1 is the breadth factor, and comoves positively with the share of categories rising quickly and with median category inflation, and correlation is highest with the 6-month measures. Breadth spiked to +1.5 standard deviations three months ago but has since come back to about neutral.
 
-PC2 is aligned positively with dispersion (2), breadth momentum (1); e.g. xs_iqr_6m, xs_iqr_3m, share_decel_3m; inverted: dispersion (4), breadth momentum (1); e.g. upper_tail_share_6m, xs_skew_6m, share_accel_3m. Reading: two-sided dispersion (IQR, share decelerating) against upper-tail concentration and skewness; separates wide relative-price dispersion from a few categories spiking.
-
-39 variables from 1985-01. The first three components explain 42, 17, and 12 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 55th percentile of its history. The largest deviations from what the common factor implies are upper_tail_share_6m (+1.7 sd), share_decel_3m (+1.4 sd), xs_iqr_12m (-1.4 sd).
+PC2 separates wide two-sided dispersion from upper-tail concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so PC2 is negative when a few categories are doing the work rather than the whole distribution shifting. PC2 ran close to -1.5 through the middle of the year, and has since returned to about neutral.
 
 
 ### Block 3: inflation expectations
@@ -118,16 +101,12 @@ PC2 is aligned positively with dispersion (2), breadth momentum (1); e.g. xs_iqr
 | spf_cpi_4q_sd | SPF cross-sectional SD of the 4-quarter forecast | Philadelphia Fed SPF | across forecasters |
 | spf_cpi_10y | SPF median 10-year CPI forecast | Philadelphia Fed SPF | quarterly spread to months |
 
-Levels of expected inflation from households, professionals, a model and markets at short and long horizons, plus forecaster dispersion. Spreads between sources and horizons are not included as separate indicators; the PCA forms them as contrasts. Michigan 5-10 year expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.
-
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-PC1 is aligned positively with markets (3), model-based (2), professionals (2), households (1); e.g. clev_1y, spf_cpi_4q, clev_10y; inverted: none. Reading: the level of expected inflation across markets, the Cleveland model, professionals and households; an expectations-level factor.
+PC1 is the level of expected inflation, and comoves positively with every source, and correlation is highest with the Cleveland model and the SPF one-year forecast. The level is about neutral.
 
-PC2 is aligned positively with dispersion (2), markets (2), households (1); e.g. spf_cpi_4q_sd, spf_cpi_4q_iqr, mich_1y; inverted: model-based (2), professionals (1); e.g. clev_10y, spf_cpi_10y, clev_1y. Reading: forecaster dispersion and household expectations against the long-run anchors (SPF 10-year, Cleveland 10-year); a near-term uncertainty versus anchoring factor.
-
-10 variables from 1985-01. The first three components explain 38, 25, and 15 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 52nd percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_10y (+0.5 sd), bei_5y5y (+0.1 sd).
+PC2 is the wedge between near-term uncertainty and long-run anchoring, loading positively on forecaster dispersion and household expectations and negatively on the 10-year anchors, so PC2 is positive when households and near-term forecasters run ahead of the anchors. It sits modestly above average, having spiked earlier in the year.
 
 
 ### Block 4: demand and labor
@@ -152,16 +131,12 @@ PC2 is aligned positively with dispersion (2), markets (2), households (1); e.g.
 | gdp_yoy | Real GDP | BEA via FRED | year-on-year, quarterly spread to months |
 | sentiment | Michigan consumer sentiment | Michigan via FRED | level |
 
-Rates in levels, quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.
-
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-PC1 is aligned positively with activity (6), wages (1), labor market (1); e.g. gdp_yoy, comp_12m, payrolls_12m; inverted: none. Reading: output and employment growth; the business-cycle factor.
+PC1 is the business-cycle factor, and comoves positively with output, employment and real spending growth, and correlation is highest with year-on-year GDP and compensation. Activity sits a little below its historical average.
 
-PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wages_yoy, vu_ratio; inverted: activity (2), labor market (1); e.g. unrate, real_retail_6m, ip_6m. Reading: wage growth and labor-market tightness (V/U, quits) against unemployment and activity momentum; a wage-pressure factor distinct from output growth.
-
-19 variables from 1985-01. The first three components explain 43, 21, and 8 percent of the variance, which points to one dominant dimension. The first component stands at -0.2 standard deviations today, the 28th percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
+PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-unemployment ratio and quits and negatively on unemployment, so PC2 is positive when the labor market is tight relative to activity. It remains above average, though it has drifted down steadily over the past year.
 
 
 ### Block 5: financial conditions and risk pricing
@@ -186,16 +161,12 @@ PC2 is aligned positively with wages (3), labor market (2); e.g. ahe_12m, eci_wa
 | sloos_ci | SLOOS net share tightening C&I standards | Fed via FRED | quarterly spread to months |
 | mortgage30 | 30-year mortgage rate | Freddie Mac via FRED | monthly mean |
 
-Monthly averages of daily data. Policy and Treasury rates, real rates (TIPS and the 10-year yield minus Cleveland Fed expectations), the NFCI and adjusted NFCI, VIX, the Baa spread, the GZ spread and excess bond premium, the term premium, equity returns, a spliced broad dollar, oil and commodity prices, lending standards and the mortgage rate. Spreads between panel members (term spread, mortgage spread) are left for the PCA to form. The factor is oriented so that positive = looser.
-
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-PC1 is aligned positively with none; inverted: rates (6), risk pricing (1), credit supply (1); e.g. mortgage30, real_10y_clev, dgs10. Reading: the level of nominal, real and mortgage rates, inverted, so that higher = lower rates = looser; the rates dimension of financial conditions.
+PC1 is the rates dimension of financial conditions, inverted so that positive means looser, and correlation is highest with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average, so this dimension is neither restrictive nor accommodative.
 
-PC2 is aligned positively with risk pricing (4), conditions indexes (2), credit supply (1); e.g. gz_spread, baa_spread, ebp; inverted: asset prices (1); e.g. equity_12m_ret. Reading: credit spreads, the excess bond premium, the NFCI and lending standards against equity returns; the risk-pricing or stress dimension (higher = more stress).
-
-20 variables from 1985-01. The first three components explain 31, 27, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.1 standard deviations today, the 57th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.5 sd), baa_spread (-1.0 sd), vix (-0.5 sd).
+PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so PC2 is positive when financial stress is elevated. It sits well below average, so risk pricing is unusually benign rather than stressed.
 
 
 ## 2. Factor structure

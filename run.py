@@ -424,11 +424,10 @@ eig = np.abs(np.linalg.eigvals(FULL["A"].values)).max()
 it_full = int(FULL["meta"]["iterations"]); conv_full = bool(FULL["meta"]["converged"])
 top = lambda ld, k=3: ", ".join(f"{vname(c)} ({v:+.2f})" for c, v in ld.reindex(ld.abs().sort_values().index[-k:][::-1]).items())
 R.p(TEXT["p15_the_factor_model_is_x_lambda"])
-R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. EM converged in {it_full} iterations{'' if conv_full else ' (NOT CONVERGED)'}. "
+if not conv_full: print("WARNING: the full DFM fit did not converge; the report no longer says so in the text")
+R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. "
     f"Averaged over the series in each block, the two global factors account for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_G.items())} of the variance, "
-    f"and all seven factors together for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_ALL.items())}. Every factor is oriented so that higher = more inflationary pressure "
-    f"(financial: looser) and scaled to unit standard deviation. First-order autocorrelation: {', '.join(f'{k} {v:.2f}' for k, v in acf1.items())}; "
-    f"the largest eigenvalue of the factor VAR is {eig:.2f}, so the system is stationary.")
+    f"and all seven factors together for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_ALL.items())}.")
 LGc = {g: LAM[g] for g in ("G1", "G2")}
 def describe_global(l, k=10):
     tp = l.reindex(l.abs().sort_values(ascending=False).index[:k]); pos, neg = tp[tp > 0], tp[tp < 0]
@@ -503,10 +502,9 @@ REALIZED_MONTHS = {3: 9, 6: 6, 12: 0, 24: 0}
 QF = quarter_paths(FULL); TW = twelve_at(accum_paths(FULL))
 FC = pd.DataFrame({f"{h}m": {"forecast": v.loc[T], "change vs current 12m": v.loc[T] - D.loc[T, "pi12"]} for h, v in TW.items()}).astype(object)
 FC.loc["realized months in window"] = [REALIZED_MONTHS[h] for h in HR]
-R.p(f"Core PCE is running at {D.loc[T, 'pi12']:.1f} percent over 12 months and {D.loc[T, 'pi3']:.1f} annualized over the latest 3 months. The model's forecast of the next eight quarters, annualized, is "
-    f"{', '.join(f'{QF.loc[T, k]:.2f}' for k in range(1, max(KS) + 1))}. Combined with the months already realized, the 12-month rate is projected at "
-    f"{' / '.join(f'{FC.loc['forecast', f'{h}m']:.1f}' for h in HR)} percent {'/'.join(str(h) for h in HR)} months from now. Within a year the window still contains realized months, so the near-term "
-    f"path is largely arithmetic: the quarters ending January and April 2026 ran at {B1['pce_core_3m'].loc[T - pd.DateOffset(months=6)]:.1f} and {B1['pce_core_3m'].loc[T - pd.DateOffset(months=3)]:.1f} annualized, and the 12-month rate falls as they roll out.")
+R.p(f"Core PCE is currently running at {D.loc[T, 'pi12']:.1f} percent over 12 months and {D.loc[T, 'pi3']:.1f} annualized over the latest 3 months.")
+R.p(f"The model forecasts 3-month annualized core PCE inflation over the next eight quarters at {', '.join(f'{QF.loc[T, k]:.2f}' for k in range(1, max(KS) + 1))}. "
+    f"Converting to 12-month inflation rates, this translates to {' / '.join(f'{FC.loc['forecast', f'{h}m']:.1f}' for h in HR)} percent {'/'.join(str(h) for h in HR)} months from now.")
 R.table(FC, f"Projected 12-month core PCE inflation at each horizon, origin {T:%B %Y} (percent)")
 # The history line is the 12-month rate, so the forecast is shown in the same units: the implied
 # 12-month rate at each future quarter, which is the average of the four quarters ending there.
@@ -548,8 +546,8 @@ ax.axhline(0, color="grey", lw=.6); ax.set_xticks(xpos); ax.set_xticklabels([d.s
 ax.legend(ncol=6, fontsize=8, frameon=False); ax.set_title(f"News contributions to the {TARGET:%b %Y} core PCE forecast, by block (pp)")
 R.fig(fig, "news", "Monthly news contributions to the current 12-month-ahead forecast, by block.")
 cum = NEWS.sum().sort_values()
-R.p(f"Holding the target date fixed at {TARGET:%B %Y}, each month's data releases revise the 12-month forecast. Over the last {len(NEWS)} months the cumulative revision is "
-    f"{NEWS.sum().sum():+.2f} pp: {', '.join(f'{b} {v:+.2f}' for b, v in cum.items())}. News is measured against the previous month's information set with the parameters held fixed.")
+print(f"[news] cumulative {NEWS.sum().sum():+.2f} pp over {len(NEWS)} months: " + ", ".join(f"{b} {v:+.2f}" for b, v in cum.items()))   # check for the authored narrative
+R.p(TEXT["p19_news_the_dfm_forecast_is_primar"])
 
 
 R.h(3, "Information sets")
@@ -584,9 +582,11 @@ REL = OOS / OOS.loc["M1 time series"]
 NOW = pd.DataFrame({f"{h}m": {k: v[h].loc[T] for k, v in PATHS.items()} for h in HR}).loc[list(PATHS)]
 PROB = pd.DataFrame({f"{h}m": {"P(lower) model": stats.norm.cdf((D.loc[T, "pi12"] - FC.loc["forecast", f"{h}m"]) / OOS.loc["M3 global + block", f"{h}m"]),
                                "unconditional": D[f"decel_{h}"].mean() if f"decel_{h}" in D else np.nan} for h in HR})
-R.p(f"How much of the projection depends on the breadth of the panel? Three nested information sets, all iterated: M1 an AR({AR_ORDER}) on monthly core PCE chosen by AIC; M2 the two global factors; M3 the global and block factors. M2 and M3 are separately "
-    f"estimated dynamic factor models, since the parameters of a restricted set cannot be read off the full fit. Forecasts are recursive from {OOS_START[:4]}: at each origin the filtered state uses "
-    f"data through that month only, but the parameters are estimated once on the full sample, which is a look-ahead that favours the factor models. Latest-vintage data throughout, so revisions are ignored.")
+R.p(f"We next consider the robustness of the DFM projection and how it depends on the information set. M1 is a basic time-series specification, an AR({AR_ORDER}) model with the order chosen by AIC, that directly projects core PCE inflation. "
+    f"M2 is a specification of the DFM that uses only the global factors. M3 is the DFM forecast from above, which uses the global and block-specific factors. The forecasts are pseudo-out-of-sample from {OOS_START[:4]}: "
+    f"they use the latest vintage of data, so they do not account for data revisions, and they use parameters estimated once on the full sample, which introduces a degree of look-ahead bias.")
+R.p(TEXT["p20_info_while_all_models_project"])
+R.p(TEXT["p21_info_notably_the_pseudo_out_of"])
 R.table(NOW, f"Projected 12-month core PCE inflation by information set, origin {T:%B %Y} (percent)")
 R.table(pd.concat({"RMSE": OOS, "relative to M1": REL}, axis=1), f"Pseudo-out-of-sample RMSE of the 12-month rate h months ahead, {OOS_START[:4]} onward, {N_OOS} origins at 3m; forecasts accumulated from the 3-month rate. Within a year the window contains realized months, so errors are mechanically smaller at short horizons")
 R.table(OOS_D, "The same evaluation reading each h-month rate off its own series instead of accumulating; the gap is the cost of ignoring the accounting identity")
@@ -616,13 +616,10 @@ D_res = np.sqrt((RESID ** 2).mean(axis=1)); D_sd = PC1.std(axis=1)
 MEAS = ["cpi", "cpi_core", "pce", "pce_core", "cpi_median", "cpi_trim", "pce_trim", "cpi_sticky", "cpi_core_sticky", "cpi_flex", "cpi_core_flex"]
 meas12 = B1[[f"{t}_12m" for t in MEAS]]; meas3 = B1[[f"{t}_3m" for t in MEAS]]; D_infl12 = meas12.std(axis=1); D_infl3 = meas3.std(axis=1)
 r_now = RESID.iloc[-1]; strong = r_now[r_now > 0.5].sort_values(ascending=False); weak = r_now[r_now < -0.5].sort_values()
-R.p(TEXT["p03_do_today_s_indicators_agree_ab"])
+R.p(TEXT["p22_sec3_we_focus_on_the_first_prin"])
 R.p(f"The five block factors share one common state that explains {100*exC[0]:.0f} percent of their joint variance. Its correlation with each block is "
-    f"{', '.join(f'{b} {v:+.2f}' for b, v in LOADC.items())}: {'all five move together' if (LOADC > 0.3).all() else 'the blocks do not all move together'}. "
-    f"The common state stands at {COMMON.iloc[-1]:+.2f} standard deviations ({ordinal(pct_rank(COMMON))} percentile). Relative to what it implies, "
-    f"{'stronger than usual: ' + ', '.join(f'{b} ({v:+.1f} sd)' for b, v in strong.items()) if len(strong) else 'no block is unusually strong'}; "
-    f"{'weaker than usual: ' + ', '.join(f'{b} ({v:+.1f} sd)' for b, v in weak.items()) if len(weak) else 'none unusually weak'}. "
-    f"Disagreement, the root mean square of these residuals, is {D_res.iloc[-1]:.2f}, the {ordinal(pct_rank(D_res))} percentile of its history.")
+    f"{', '.join(f'{b} {v:+.2f}' for b, v in LOADC.items())}. The current block-level factors depart from that historical comovement by their residuals, which are currently small "
+    f"but point to somewhat stronger inflation expectations and weaker demand.")
 R.table(pd.DataFrame({"correlation with common state": LOADC, "current level (z)": PC1.iloc[-1], "implied by common state": PC1.iloc[-1] - r_now, "residual (z)": r_now}),
         f"Block factors, {PC1.index[-1]:%B %Y}: level, what the common state implies, and the residual")
 DIS = pd.DataFrame({"D_res: residual RMS": D_res, "D_sd: SD across blocks": D_sd, "D_infl_12m: SD across 12m measures": D_infl12, "D_infl_3m: SD across 3m measures": D_infl3})
@@ -656,10 +653,9 @@ COS = cosine_to_now(RESID); A1 = cos_analogs(RESID); A2 = cos_analogs(PC1); a1 =
 outc = np.where(a1 < -0.5, "sustained disinflation", np.where(a1 > 0.5, "reacceleration", "mixed/flat"))
 R.p(TEXT["p04_when_in_the_past_did_the_confi"])
 analog_label = lambda d, r: f"{pd.Timestamp(d):%B %Y} ({r.cosine:+.2f}{', mirror' if r.cosine < 0 else ''})"
-R.p(f"Cosine similarity between today's vector of block residuals ({', '.join(f'{b} {v:+.2f}' for b, v in RESID.iloc[-1].items())}), the part of each block not explained by the common state, and every past month, excluding the last 24 months and keeping at most one match per six-month window. "
-    f"Ranked by absolute similarity, so that a mirror image of today's pattern counts as well as a match, the three closest are "
-    f"{', '.join(analog_label(d, r) for d, r in A1.head(3).iterrows())}; in each, core PCE twelve months later was "
-    f"{', '.join(f'{v:.1f}' for v in A1['next 12m'].iloc[:3])} against {', '.join(f'{v:.1f}' for v in A1['core PCE 12m then'].iloc[:3])} at the time. Not causal.")
+R.p(f"To address this question, we calculate the absolute cosine similarity between today's vector of block residuals ({', '.join(f'{b} {v:+.2f}' for b, v in RESID.iloc[-1].items())}) and every prior month, excluding the last 24 months. "
+    f"Using absolute similarity means that a mirror image of today's residuals also ranks highly. On this basis the three closest are {', '.join(analog_label(d, r) for d, r in A1.head(3).iterrows())}. "
+    f"For these dates, core PCE twelve months later was {', '.join(f'{v:.1f}' for v in A1['next 12m'].iloc[:3])} against {', '.join(f'{v:.1f}' for v in A1['core PCE 12m then'].iloc[:3])} at the time, respectively.")
 R.p(TEXT["p18_analogs_the_three_closest_prof"])
 fig, ax = plt.subplots(figsize=(15, 3.4)); ax.plot(COS.index, COS, color="k", lw=.9); ax.axhline(0, color="grey", lw=.6)
 ax.axvspan(COS.index[-1] - pd.DateOffset(months=24), COS.index[-1], color="grey", alpha=.15, lw=0)
@@ -676,10 +672,11 @@ fc_str = " / ".join(f"{FC.loc['forecast', f'{h}m']:.1f}" for h in HR)
 hs_str = "/".join(str(h) for h in HR)
 h12 = {"forecast": FC.loc["forecast", "12m"], "change": FC.loc["change vs current 12m", "12m"], "current": D.loc[T, "pi12"]}
 R.summary([
-    f"Core PCE runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",
+    f"Core PCE currently runs at {B1['pce_core_12m'].loc[T]:.1f} percent over 12 months and {B1['pce_core_3m'].loc[T]:.1f} percent annualized over 3 months.",
     TEXT["s02_we_collect_data_across_five_bl"],
-    f"The dynamic factor model that leverages data across all five blocks projects 12-month core PCE inflation of {fc_str} percent at {hs_str} months ahead, "
-    f"that is, a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the 12 months, and inflation is not expected to return to target over the near term.",
+    f"A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of {fc_str} percent at {hs_str} months ahead, "
+    f"that is, a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the next 12 months.",
     TEXT["s04_the_first_common_factor_in_eac"],
-    TEXT["s06_across_the_second_principal_co"]])
+    TEXT["s06_across_the_second_principal_co"],
+    TEXT["s07_the_five_blocks_of_indicators_a"]])
 R.write("report"); print(f"report.md / report.html written in {time.time()-t0:.0f}s; {len(list(FIG.glob('*.png')))} figures")

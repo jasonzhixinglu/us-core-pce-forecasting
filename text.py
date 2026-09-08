@@ -6,7 +6,7 @@ interpretations. Sentences that embed computed numbers stay in run.py as f-strin
 
 TEXT = {
  'p01_all_of_these_are_treated_as_po':
-  "All of these are potentially useful signals for future inflation. Our analysis takes the following steps. Indicators are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, 12, and 24 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.",
+  "All of these are potentially useful signals for future inflation. Our analysis takes the following steps. Indicators are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, 12, and 24 months ahead, and we decompose this forecast into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.",
 
  'p02_for_the_linear_m3_equation_eac':
   "For the linear M3 equation each contribution is the coefficient times the current value's deviation from its sample mean, so contributions sum to the forecast's deviation from the target's mean. This says which signals, at their current values, push the forecast away from its mean; it is not a news decomposition.",
@@ -15,7 +15,7 @@ TEXT = {
   "Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.",
 
  'p04_when_in_the_past_did_the_confi':
-  'We next ask when in the past the configuration of inflation signals looked most like today.',
+  'We next ask: when in the past did the configuration of block-level residuals look most like today?',
 
  'p05_four_further_pieces_of_evidenc':
   'Four further pieces of evidence feed the answers in the next section: the probability that inflation will be lower over each horizon, a horse race of individual statistics as additions to core PCE 12m, the history of inflation conditional on breadth, and an event study of episodes in which the 3-month rate fell well below the 12-month rate.',
@@ -27,7 +27,7 @@ TEXT = {
   "We ask what current indicators imply for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.",
 
  'p07b_the_motivation_is_the_current':
-  "This is motivated by the current debate around the Fed's September meeting, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.",
+  "This exercise is motivated by the current debate around the Fed's September meeting, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.",
 
  'p08_the_approach_has_five_steps_p':
   "The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.",
@@ -51,7 +51,7 @@ TEXT = {
   'Monthly averages of daily data. Policy and Treasury rates, real rates (TIPS and the 10-year yield minus Cleveland Fed expectations), the NFCI and adjusted NFCI, VIX, the Baa spread, the GZ spread and excess bond premium, the term premium, equity returns, a spliced broad dollar, oil and commodity prices, lending standards and the mortgage rate. Spreads between panel members (term spread, mortgage spread) are left for the PCA to form. The factor is oriented so that positive = looser.',
 
  'p15_the_factor_model_is_x_lambda':
-  "We next combine the five blocks in a dynamic factor model, X = Lambda_G G + lambda_B B + e, allowing two global factors common to the whole panel and one factor specific to each block, with the seven evolving as a joint VAR(1) and each series carrying an AR(1) idiosyncratic component. We estimate it by expectation-maximization, and it is operationalized as a Kalman filter. Signs are normalized so that every factor is positively related to inflation.",
+  "We next combine the five blocks in a dynamic factor model, X = Lambda_G G + lambda_B B + e, allowing two global factors common to the whole panel and one factor specific to each block. The seven factors are modeled jointly as a VAR(1) and each indicator carries an AR(1) idiosyncratic component. We estimate the model via expectation-maximization, and it is operationalized as a Kalman filter. Signs are normalized so that every factor is positively related to inflation.",
 
  'p16_core_pce_is_the_target_the_de':
   "Core PCE is the target. The dependent variables are future annualized core PCE inflation over 3, 6, 12 and 24 months, its change relative to today's 12-month rate, and an indicator for deceleration. Three nested direct regressions are compared: M1 uses inflation history and momentum only (12m rate, its 12-month lag, 3m and 6m rates, the 3-month change in the 12m rate, acceleration); M2 adds the two global factors; M3 adds the five block factors.",
@@ -72,19 +72,25 @@ TEXT = {
   "Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.",
 
  'p18_analogs_the_three_closest_prof':
-  "Economic conditions were only partly similar. July 2006 is the closest match: the end of an energy shock, with headline running a point above core, household expectations above professional forecasts, and the Fed at the end of a tightening cycle; the shock did not pass into core, which was 2.0 a year later. May 1993 shares the residual pattern but not the economics: oil was flat, headline sat below core, and the economy was in a post-recession disinflation. December 2015 is the mirror in every block, the reverse relative-price shock after the oil collapse, after which core drifted up from 1.2 to 1.8 as the shock faded. Today differs from all three in level: core is 3.3, a full point above trimmed PCE, with the widest gap between household and professional expectations of the four and the weakest payroll growth.",
+  "Economic conditions were only partly similar, so this cosine similarity does not by itself cleanly identify historical analogs. July 2006 is the closest match: the end of an energy shock, with headline running a point above core, household expectations above professional forecasts, and the Fed at the end of a tightening cycle. In this episode, the energy shock did not pass into core PCE inflation, which was 2.0 a year later.",
+
+ 'p18b_analogs_may_1993_shares_the_re':
+  "May 1993 shares the residual pattern but the situation was very different: oil prices were flat, headline sat below core, and the economy was in a post-recession disinflationary episode. December 2015 is the mirror of today in every sense: we saw a negative relative-price shock after the oil price collapse, after which core PCE inflation drifted up from 1.2 to 1.8 as the shock faded.",
+
+ 'p18c_analogs_today_differs_from_all':
+  "Today differs from all three prior episodes in the level of its deviation. Core PCE inflation is 3.3, a full point above trimmed PCE, with the widest gap between household and professional expectations of the four.",
 
  's07_the_five_blocks_of_indicators_a':
   "The five blocks of indicators all reflect a general inflation common factor, which is currently about neutral, but the residuals show that inflation expectations run hotter than expected while demand is somewhat weaker than expected, perhaps reflecting recent supply-side shocks from energy and tariffs.",
 
  'p19_news_the_dfm_forecast_is_primar':
-  "The DFM forecast revisions are driven primarily by news in the basic inflation indicators and in the indicators of inflation dispersion across categories. Contributions were positive in every month from January to May 2026; June saw a large reversal on lower inflation prints, and the news from July has so far been broadly neutral.",
+  "The DFM forecast revisions are driven primarily by news in the basic inflation indicators and in the indicators of inflation dispersion across categories. Contributions were positive in every month from January to May 2026. June saw a large reversal on lower inflation prints, and the news from July has so far been broadly neutral.",
 
  'p20_info_while_all_models_project':
-  "While all three models project inflation to decelerate, the large-scale DFM (M3) projects the fastest convergence, and the smaller information sets in M1 and M2 project a slower pace. In particular, M1 and M2 do not project inflation to return to within 50 basis points of the 2 percent target within 24 months. It is worth noting that the stronger persistence of the time-series forecast may reflect the longer lag structure selected by AIC, whereas the DFM uses a VAR(1) specification that mechanically favors faster mean reversion.",
+  "While all three models project inflation to decelerate, the large-scale DFM (M3) projects the fastest convergence, and the smaller information sets in M1 and M2 project a slower pace. In particular, M1 and M2 do not project inflation to return to within 50 basis points of the 2 percent target within 24 months. It is worth noting that the stronger persistence of the time-series forecast (M1) may reflect the longer lag structure selected by AIC, whereas the DFM uses a VAR(1) specification that mechanically favors faster mean reversion.",
 
  'p21_info_notably_the_pseudo_out_of':
-  "Notably, the smaller models outperform the larger ones pseudo-out-of-sample. This may reflect overfitting, and the differences are unlikely to be significant under a formal equal-predictive-ability test, but it highlights that the projection of quickly decelerating inflation over the next 12 months may not be robust.",
+  "Notably, the smaller models outperform the larger ones pseudo-out-of-sample. This may reflect overfitting of the large-scale DFM, although these performance differences are unlikely to be significant under a formal equal-predictive-ability test. Nonetheless, this exercise highlights that the projection of quickly decelerating inflation over the next 12 months may not be robust to the forecasting model and/or the information set.",
 
  'p22_sec3_we_focus_on_the_first_prin':
   "Do today's indicators agree about inflation more or less than they usually do? We focus on the first principal component from each block in section 1 and fit a one-factor PCA model to these five block-level common factors.",
@@ -109,11 +115,11 @@ READING = {   # one-line interpretations of the estimated factors; the data-driv
 BLOCK_PROSE = {   # two paragraphs per block, read off the block figure: what PC1 and PC2 are, and where each stands now
  "infl": [
   "PC1 is the general inflation factor, comoving positively with all inflation measures and correlating most strongly with recent core and trimmed-mean measures. It currently sits close to its historical average.",
-  "PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It rose with the Iran war and has since returned to average, without yet turning negative.",
+  "PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It turned positive with the Iran war and has since returned to about zero, but has yet to turn negative.",
  ],
  "dist": [
   "PC1 is the breadth factor, comoving positively with the share of categories rising quickly and with median category inflation, and correlating most strongly with the 6-month breadth measures. Breadth spiked to +1.5 standard deviations three months ago and has since returned to average.",
-  "PC2 separates wide two-sided dispersion from right-tailed concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, reflecting energy- and tariff-related inflation passthrough, but has since returned to average.",
+  "PC2 separates wide two-sided dispersion from concentration in the right tail, loading positively on the interquartile range and negatively on skewness and the upper-tail share. Therefore, it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, reflecting energy- and tariff-related inflation passthrough, but has since returned to about zero.",
  ],
  "exp": [
   "PC1 is the overall level of expected inflation, comoving positively with every source and correlating most strongly with the Cleveland Fed measures and the SPF one-year forecast. It currently sits close to its historical average.",
@@ -125,7 +131,7 @@ BLOCK_PROSE = {   # two paragraphs per block, read off the block figure: what PC
  ],
  "fin": [
   "PC1 is the common factor of interest rates, inverted so that positive implies looser financial conditions, and correlating most strongly with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average.",
-  "PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average: the pricing of risk is unusually cheap.",
+  "PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average, i.e., the pricing of risk is unusually cheap.",
  ],
 }
 

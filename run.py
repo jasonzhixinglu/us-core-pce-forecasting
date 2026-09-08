@@ -502,9 +502,9 @@ REALIZED_MONTHS = {3: 9, 6: 6, 12: 0, 24: 0}
 QF = quarter_paths(FULL); TW = twelve_at(accum_paths(FULL))
 FC = pd.DataFrame({f"{h}m": {"forecast": v.loc[T], "change vs current 12m": v.loc[T] - D.loc[T, "pi12"]} for h, v in TW.items()}).astype(object)
 FC.loc["realized months in window"] = [REALIZED_MONTHS[h] for h in HR]
-R.p(f"Core PCE is currently running at {D.loc[T, 'pi12']:.1f} percent over 12 months and {D.loc[T, 'pi3']:.1f} annualized over the latest 3 months.")
 R.p(f"The model forecasts 3-month annualized core PCE inflation over the next eight quarters at {', '.join(f'{QF.loc[T, k]:.2f}' for k in range(1, max(KS) + 1))}. "
-    f"Converting to 12-month inflation rates, this translates to {' / '.join(f'{FC.loc['forecast', f'{h}m']:.1f}' for h in HR)} percent {'/'.join(str(h) for h in HR)} months from now.")
+    f"Converting to 12-month inflation rates, this translates to {' / '.join(f'{FC.loc['forecast', f'{h}m']:.1f}' for h in HR)} percent {'/'.join(str(h) for h in HR)} months from now. "
+    f"That is, core PCE inflation is projected to decelerate but is not expected to reach the 2-percent target within the near term.")
 R.table(FC, f"Projected 12-month core PCE inflation at each horizon, origin {T:%B %Y} (percent)")
 # The history line is the 12-month rate, so the forecast is shown in the same units: the implied
 # 12-month rate at each future quarter, which is the average of the four quarters ending there.
@@ -582,9 +582,9 @@ REL = OOS / OOS.loc["M1 time series"]
 NOW = pd.DataFrame({f"{h}m": {k: v[h].loc[T] for k, v in PATHS.items()} for h in HR}).loc[list(PATHS)]
 PROB = pd.DataFrame({f"{h}m": {"P(lower) model": stats.norm.cdf((D.loc[T, "pi12"] - FC.loc["forecast", f"{h}m"]) / OOS.loc["M3 global + block", f"{h}m"]),
                                "unconditional": D[f"decel_{h}"].mean() if f"decel_{h}" in D else np.nan} for h in HR})
-R.p(f"We next consider the robustness of the DFM projection and how it depends on the information set. M1 is a basic time-series specification, an AR({AR_ORDER}) model with the order chosen by AIC, that directly projects core PCE inflation. "
-    f"M2 is a specification of the DFM that uses only the global factors. M3 is the DFM forecast from above, which uses the global and block-specific factors. The forecasts are pseudo-out-of-sample from {OOS_START[:4]}: "
-    f"they use the latest vintage of data, so they do not account for data revisions, and they use parameters estimated once on the full sample, which introduces a degree of look-ahead bias.")
+R.p(f"We next consider the robustness of the DFM projection and how it depends on the model and/or information set. M1 is a basic time-series specification, an AR({AR_ORDER}) model with the order chosen by AIC, that directly projects core PCE inflation. "
+    f"M2 is a specification of the DFM that uses only the global factors. M3 is the DFM forecast from above, which uses the global and block-specific factors.")
+R.p(f"We produce pseudo-out-of-sample forecasts from {OOS_START[:4]} based on the latest vintage of data, so they do not account for data revisions, and furthermore we use full-sample estimated parameters, which introduces another degree of look-ahead bias.")
 R.p(TEXT["p20_info_while_all_models_project"])
 R.p(TEXT["p21_info_notably_the_pseudo_out_of"])
 R.table(NOW, f"Projected 12-month core PCE inflation by information set, origin {T:%B %Y} (percent)")
@@ -656,7 +656,7 @@ analog_label = lambda d, r: f"{pd.Timestamp(d):%B %Y} ({r.cosine:+.2f}{', mirror
 R.p(f"To address this question, we calculate the absolute cosine similarity between today's vector of block residuals ({', '.join(f'{b} {v:+.2f}' for b, v in RESID.iloc[-1].items())}) and every prior month, excluding the last 24 months. "
     f"Using absolute similarity means that a mirror image of today's residuals also ranks highly. On this basis the three closest are {', '.join(analog_label(d, r) for d, r in A1.head(3).iterrows())}. "
     f"For these dates, core PCE twelve months later was {', '.join(f'{v:.1f}' for v in A1['next 12m'].iloc[:3])} against {', '.join(f'{v:.1f}' for v in A1['core PCE 12m then'].iloc[:3])} at the time, respectively.")
-R.p(TEXT["p18_analogs_the_three_closest_prof"])
+R.p(TEXT["p18_analogs_the_three_closest_prof"]); R.p(TEXT["p18b_analogs_may_1993_shares_the_re"]); R.p(TEXT["p18c_analogs_today_differs_from_all"])
 fig, ax = plt.subplots(figsize=(15, 3.4)); ax.plot(COS.index, COS, color="k", lw=.9); ax.axhline(0, color="grey", lw=.6)
 ax.axvspan(COS.index[-1] - pd.DateOffset(months=24), COS.index[-1], color="grey", alpha=.15, lw=0)
 for d in pd.to_datetime(A1.index[:3]): ax.scatter([d], [COS.loc[d]], color="red", s=22, zorder=5); ax.annotate(f"{d:%y-%m} ({COS.loc[d]:+.2f})", (d, COS.loc[d]), textcoords="offset points", xytext=(0, 5 if COS.loc[d] >= 0 else -11), ha="center", fontsize=7)
@@ -677,7 +677,7 @@ R.summary([
     f"A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of {fc_str} percent at {hs_str} months ahead, "
     f"a {'deceleration' if h12['change'] < 0 else 'acceleration'} of {abs(h12['change']):.1f} pp over the next 12 months. The near-term decline is largely arithmetic, as the strong quarters of early 2026 drop out of the 12-month window; "
     f"beyond that the model expects quarterly core inflation to settle near {QF.loc[T, 4]:.1f} percent.",
-    f"The pace of deceleration is not robust to the information set: a univariate AR({AR_ORDER}) projects {NOW.loc['M1 time series', '12m']:.1f} percent at 12 months and the global-factor-only model {NOW.loc['M2 global factors', '12m']:.1f}, "
+    f"The pace of deceleration is not robust to the model and/or information set: a univariate AR({AR_ORDER}) projects {NOW.loc['M1 time series', '12m']:.1f} percent at 12 months and the global-factor-only model {NOW.loc['M2 global factors', '12m']:.1f}, "
     f"and the univariate model forecasts better pseudo-out-of-sample than either factor model (relative RMSE {REL.loc['M3 global + block', '12m']:.2f} for the full model at 12 months).",
     TEXT["s04_the_first_common_factor_in_eac"],
     TEXT["s06_across_the_second_principal_co"],

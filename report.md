@@ -6,7 +6,7 @@
 - Core PCE currently runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.
 - To project its future trajectory, we collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.
 - A dynamic factor model leverages data across all five blocks to project 12-month core PCE inflation of 3.3 / 2.9 / 2.4 / 2.4 percent at 3/6/12/24 months ahead, a deceleration of 0.9 pp over the next 12 months. The near-term decline is largely arithmetic, as the strong quarters of early 2026 drop out of the 12-month window; beyond that the model expects quarterly core inflation to settle near 2.3 percent.
-- The pace of deceleration is not robust to the information set: a univariate AR(12) projects 3.1 percent at 12 months and the global-factor-only model 2.7, and the univariate model forecasts better pseudo-out-of-sample than either factor model (relative RMSE 1.14 for the full model at 12 months).
+- The pace of deceleration is not robust to the model and/or information set: a univariate AR(12) projects 3.1 percent at 12 months and the global-factor-only model 2.7, and the univariate model forecasts better pseudo-out-of-sample than either factor model (relative RMSE 1.14 for the full model at 12 months).
 - The first common factor in each of the five blocks is near its historical average: we don't see evidence of overheating, but neither do we see evidence of current conditions being significantly restrictive. The residuals point to inflation expectations running hotter than expected while demand is somewhat weaker than expected, consistent with recent supply-side shocks from energy and tariffs.
 - Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.
 - The closest historical analogs by the pattern of block residuals are July 2006 and May 1993, with December 2015 as a mirror image: in the two energy-shock episodes, 2006 and 2015, the shock did not pass into core. Today differs in level, with core PCE 1.0 pp above trimmed PCE, a gap none of the analogs showed.
@@ -16,9 +16,9 @@
 
 We ask what current indicators imply for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.
 
-This is motivated by the current debate around the Fed's September meeting, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
+This exercise is motivated by the current debate around the Fed's September meeting, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
 
-All of these are potentially useful signals for future inflation. Our analysis takes the following steps. Indicators are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, 12, and 24 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.
+All of these are potentially useful signals for future inflation. Our analysis takes the following steps. Indicators are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, 12, and 24 months ahead, and we decompose this forecast into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.
 
 
 ## 1. The five blocks
@@ -49,7 +49,7 @@ All of these are potentially useful signals for future inflation. Our analysis t
 
 PC1 is the general inflation factor, comoving positively with all inflation measures and correlating most strongly with recent core and trimmed-mean measures. It currently sits close to its historical average.
 
-PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It rose with the Iran war and has since returned to average, without yet turning negative.
+PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It turned positive with the Iran war and has since returned to about zero, but has yet to turn negative.
 
 
 ### Block 2: price-change distribution
@@ -82,7 +82,7 @@ PC2 captures momentum, loading positively on 3m measures and negatively on 12m m
 
 PC1 is the breadth factor, comoving positively with the share of categories rising quickly and with median category inflation, and correlating most strongly with the 6-month breadth measures. Breadth spiked to +1.5 standard deviations three months ago and has since returned to average.
 
-PC2 separates wide two-sided dispersion from right-tailed concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, reflecting energy- and tariff-related inflation passthrough, but has since returned to average.
+PC2 separates wide two-sided dispersion from concentration in the right tail, loading positively on the interquartile range and negatively on skewness and the upper-tail share. Therefore, it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, reflecting energy- and tariff-related inflation passthrough, but has since returned to about zero.
 
 
 ### Block 3: inflation expectations
@@ -167,12 +167,12 @@ PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-
 
 PC1 is the common factor of interest rates, inverted so that positive implies looser financial conditions, and correlating most strongly with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average.
 
-PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average: the pricing of risk is unusually cheap.
+PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average, i.e., the pricing of risk is unusually cheap.
 
 
 ## 2. A dynamic factor model of the panel
 
-We next combine the five blocks in a dynamic factor model, X = Lambda_G G + lambda_B B + e, allowing two global factors common to the whole panel and one factor specific to each block, with the seven evolving as a joint VAR(1) and each series carrying an AR(1) idiosyncratic component. We estimate it by expectation-maximization, and it is operationalized as a Kalman filter. Signs are normalized so that every factor is positively related to inflation.
+We next combine the five blocks in a dynamic factor model, X = Lambda_G G + lambda_B B + e, allowing two global factors common to the whole panel and one factor specific to each block. The seven factors are modeled jointly as a VAR(1) and each indicator carries an AR(1) idiosyncratic component. We estimate the model via expectation-maximization, and it is operationalized as a Kalman filter. Signs are normalized so that every factor is positively related to inflation.
 
 The panel has 141 variables from 1985-01 to 2026-07. Averaged over the series in each block, the two global factors account for dem 17%, dist 44%, exp 26%, fin 23%, infl 74% of the variance, and all seven factors together for dem 48%, dist 55%, exp 33%, fin 30%, infl 77%.
 
@@ -192,9 +192,7 @@ The block factors explain what remains in each block once the global factors are
 
 ### Forecasts
 
-Core PCE is currently running at 3.3 percent over 12 months and 3.0 annualized over the latest 3 months.
-
-The model forecasts 3-month annualized core PCE inflation over the next eight quarters at 2.49, 2.33, 2.30, 2.32, 2.35, 2.37, 2.39, 2.41. Converting to 12-month inflation rates, this translates to 3.3 / 2.9 / 2.4 / 2.4 percent 3/6/12/24 months from now.
+The model forecasts 3-month annualized core PCE inflation over the next eight quarters at 2.49, 2.33, 2.30, 2.32, 2.35, 2.37, 2.39, 2.41. Converting to 12-month inflation rates, this translates to 3.3 / 2.9 / 2.4 / 2.4 percent 3/6/12/24 months from now. That is, core PCE inflation is projected to decelerate but is not expected to reach the 2-percent target within the near term.
 
 *Projected 12-month core PCE inflation at each horizon, origin July 2026 (percent)*
 
@@ -213,16 +211,18 @@ The model forecasts 3-month annualized core PCE inflation over the next eight qu
 ![Monthly news contributions to the current 12-month-ahead forecast, by block.](figures/news.png)
 *Monthly news contributions to the current 12-month-ahead forecast, by block.*
 
-The DFM forecast revisions are driven primarily by news in the basic inflation indicators and in the indicators of inflation dispersion across categories. Contributions were positive in every month from January to May 2026; June saw a large reversal on lower inflation prints, and the news from July has so far been broadly neutral.
+The DFM forecast revisions are driven primarily by news in the basic inflation indicators and in the indicators of inflation dispersion across categories. Contributions were positive in every month from January to May 2026. June saw a large reversal on lower inflation prints, and the news from July has so far been broadly neutral.
 
 
 ### Information sets
 
-We next consider the robustness of the DFM projection and how it depends on the information set. M1 is a basic time-series specification, an AR(12) model with the order chosen by AIC, that directly projects core PCE inflation. M2 is a specification of the DFM that uses only the global factors. M3 is the DFM forecast from above, which uses the global and block-specific factors. The forecasts are pseudo-out-of-sample from 2000: they use the latest vintage of data, so they do not account for data revisions, and they use parameters estimated once on the full sample, which introduces a degree of look-ahead bias.
+We next consider the robustness of the DFM projection and how it depends on the model and/or information set. M1 is a basic time-series specification, an AR(12) model with the order chosen by AIC, that directly projects core PCE inflation. M2 is a specification of the DFM that uses only the global factors. M3 is the DFM forecast from above, which uses the global and block-specific factors.
 
-While all three models project inflation to decelerate, the large-scale DFM (M3) projects the fastest convergence, and the smaller information sets in M1 and M2 project a slower pace. In particular, M1 and M2 do not project inflation to return to within 50 basis points of the 2 percent target within 24 months. It is worth noting that the stronger persistence of the time-series forecast may reflect the longer lag structure selected by AIC, whereas the DFM uses a VAR(1) specification that mechanically favors faster mean reversion.
+We produce pseudo-out-of-sample forecasts from 2000 based on the latest vintage of data, so they do not account for data revisions, and furthermore we use full-sample estimated parameters, which introduces another degree of look-ahead bias.
 
-Notably, the smaller models outperform the larger ones pseudo-out-of-sample. This may reflect overfitting, and the differences are unlikely to be significant under a formal equal-predictive-ability test, but it highlights that the projection of quickly decelerating inflation over the next 12 months may not be robust.
+While all three models project inflation to decelerate, the large-scale DFM (M3) projects the fastest convergence, and the smaller information sets in M1 and M2 project a slower pace. In particular, M1 and M2 do not project inflation to return to within 50 basis points of the 2 percent target within 24 months. It is worth noting that the stronger persistence of the time-series forecast (M1) may reflect the longer lag structure selected by AIC, whereas the DFM uses a VAR(1) specification that mechanically favors faster mean reversion.
+
+Notably, the smaller models outperform the larger ones pseudo-out-of-sample. This may reflect overfitting of the large-scale DFM, although these performance differences are unlikely to be significant under a formal equal-predictive-ability test. Nonetheless, this exercise highlights that the projection of quickly decelerating inflation over the next 12 months may not be robust to the forecasting model and/or the information set.
 
 *Projected 12-month core PCE inflation by information set, origin July 2026 (percent)*
 
@@ -283,11 +283,15 @@ The five block factors share one common state that explains 60 percent of their 
 
 ### Historical analogs
 
-We next ask when in the past the configuration of inflation signals looked most like today.
+We next ask: when in the past did the configuration of block-level residuals look most like today?
 
 To address this question, we calculate the absolute cosine similarity between today's vector of block residuals (infl -0.04, dist -0.02, exp +0.18, dem -0.15, fin +0.08) and every prior month, excluding the last 24 months. Using absolute similarity means that a mirror image of today's residuals also ranks highly. On this basis the three closest are May 1993 (+0.97), July 2006 (+0.96), December 2015 (-0.90, mirror). For these dates, core PCE twelve months later was 2.1, 2.0, 1.8 against 2.8, 2.5, 1.2 at the time, respectively.
 
-Economic conditions were only partly similar. July 2006 is the closest match: the end of an energy shock, with headline running a point above core, household expectations above professional forecasts, and the Fed at the end of a tightening cycle; the shock did not pass into core, which was 2.0 a year later. May 1993 shares the residual pattern but not the economics: oil was flat, headline sat below core, and the economy was in a post-recession disinflation. December 2015 is the mirror in every block, the reverse relative-price shock after the oil collapse, after which core drifted up from 1.2 to 1.8 as the shock faded. Today differs from all three in level: core is 3.3, a full point above trimmed PCE, with the widest gap between household and professional expectations of the four and the weakest payroll growth.
+Economic conditions were only partly similar, so this cosine similarity does not by itself cleanly identify historical analogs. July 2006 is the closest match: the end of an energy shock, with headline running a point above core, household expectations above professional forecasts, and the Fed at the end of a tightening cycle. In this episode, the energy shock did not pass into core PCE inflation, which was 2.0 a year later.
+
+May 1993 shares the residual pattern but the situation was very different: oil prices were flat, headline sat below core, and the economy was in a post-recession disinflationary episode. December 2015 is the mirror of today in every sense: we saw a negative relative-price shock after the oil price collapse, after which core PCE inflation drifted up from 1.2 to 1.8 as the shock faded.
+
+Today differs from all three prior episodes in the level of its deviation. Core PCE inflation is 3.3, a full point above trimmed PCE, with the widest gap between household and professional expectations of the four.
 
 ![Cosine similarity of the historical block residual pattern to today's.](figures/analogs.png)
 *Cosine similarity of the historical block residual pattern to today's.*

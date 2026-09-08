@@ -284,10 +284,11 @@ Matching on the residuals asks when the five blocks last departed from their com
 ![Cosine similarity of the historical block residual pattern to today's.](figures/analogs.png)
 *Cosine similarity of the historical block residual pattern to today's.*
 
-*The three closest analogs by cosine similarity of the block residual pattern, origin Jul 2026*
+*The three closest analogs by cosine similarity of the block residual pattern, with today for comparison (residuals in z units, + = stronger than the common state implies)*
 
-|  | cosine | pattern | magnitude ratio | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
-|---|---|---|---|---|---|---|---|---|---|
-| 1993-05 | 0.97 | same | 2.10 | 2.82 | 1.96 | 2.12 | 2.11 | -0.71 | 0.24 |
-| 2006-07 | 0.96 | same | 1.51 | 2.51 | 2.17 | 2.26 | 2.02 | -0.49 | 0.17 |
-| 2015-12 | -0.90 | mirror | 2.67 | 1.18 | 1.97 | 2.02 | 1.75 | 0.57 | 0.30 |
+|  | cosine | pattern | infl | dist | exp | dem | fin | magnitude ratio | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1993-05 | 0.97 | same | -0.04 | -0.08 | 0.40 | -0.22 | 0.25 | 2.10 | 2.82 | 1.96 | 2.12 | 2.11 | -0.71 | 0.24 |
+| 2006-07 | 0.96 | same | -0.11 | -0.02 | 0.30 | -0.14 | 0.15 | 1.51 | 2.51 | 2.17 | 2.26 | 2.02 | -0.49 | 0.17 |
+| 2015-12 | -0.90 | mirror | 0.22 | -0.20 | -0.39 | 0.43 | -0.18 | 2.67 | 1.18 | 1.97 | 2.02 | 1.75 | 0.57 | 0.30 |
+| 2026-07 (today) | 1.00 | today | -0.04 | -0.02 | 0.18 | -0.15 | 0.08 | 1.00 | 3.29 |  |  |  |  |  |

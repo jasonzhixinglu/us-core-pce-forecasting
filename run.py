@@ -647,7 +647,7 @@ def cos_analogs(V, k=15, exclude_months=24, min_gap=6):
     for t in cs.abs().sort_values(ascending=False).index:          # by |cosine|: mirror images count too
         if all(abs((t - q).days) > min_gap * 30 for q in picked): picked.append(t)
         if len(picked) == k: break
-    out = pd.DataFrame({"cosine": cs[picked], "pattern": np.where(cs[picked] >= 0, "same", "mirror"), "magnitude ratio": np.sqrt((hist.loc[picked] ** 2).sum(axis=1)) / np.sqrt((v0 ** 2).sum()), "core PCE 12m then": pi12.reindex(picked)})
+    out = pd.DataFrame({"cosine": cs[picked], "pattern": np.where(cs[picked] >= 0, "same", "mirror"), **{b: V.loc[picked, b] for b in V.columns}, "magnitude ratio": np.sqrt((hist.loc[picked] ** 2).sum(axis=1)) / np.sqrt((v0 ** 2).sum()), "core PCE 12m then": pi12.reindex(picked)})
     for h in (3, 6, 12): out[f"next {h}m"] = Y[f"pi_fut_{h}"].reindex(picked)
     out["change 12m ahead"] = out["next 12m"] - out["core PCE 12m then"]; out["D_res then"] = D_res.reindex(picked); out.index = [d.strftime("%Y-%m") for d in out.index]; return out
 # Primary object: the residuals, so the match abstracts from the scale of the common state and asks when
@@ -666,7 +666,9 @@ ax.axvspan(COS.index[-1] - pd.DateOffset(months=24), COS.index[-1], color="grey"
 for d in pd.to_datetime(A1.index[:3]): ax.scatter([d], [COS.loc[d]], color="red", s=22, zorder=5); ax.annotate(f"{d:%y-%m} ({COS.loc[d]:+.2f})", (d, COS.loc[d]), textcoords="offset points", xytext=(0, 5 if COS.loc[d] >= 0 else -11), ha="center", fontsize=7)
 ax.set_ylim(-1, 1.05); ax.set_title(f"Cosine similarity of each month's block residual pattern to {COS.index[-1]:%b %Y}; red = three closest by |cosine|, shaded = excluded window")
 R.fig(fig, "analogs", "Cosine similarity of the historical block residual pattern to today's.")
-R.table(A1.head(3), f"The three closest analogs by cosine similarity of the block residual pattern, origin {T:%b %Y}")
+today_row = pd.Series({"cosine": 1.0, "pattern": "today", **RESID.iloc[-1].to_dict(), "magnitude ratio": 1.0, "core PCE 12m then": pi12.loc[T]}, name=f"{T:%Y-%m} (today)")
+ANALOG_TABLE = pd.concat([A1.head(3), today_row.to_frame().T]).reindex(columns=A1.columns)
+R.table(ANALOG_TABLE, f"The three closest analogs by cosine similarity of the block residual pattern, with today for comparison (residuals in z units, + = stronger than the common state implies)", small=True)
 
 # =============================================================================== summary
 # The three quantities the summary quotes; they were defined in the answers section, now dropped.

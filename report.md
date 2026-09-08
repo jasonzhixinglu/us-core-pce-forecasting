@@ -1,52 +1,141 @@
 
 # US inflation signals: agreement, disagreement, and forecasting
 
-Run 2026-09-08. Question: what does the current configuration of inflation-related indicators imply for future US inflation, how much do the indicators agree or disagree, and does today's configuration resemble past episodes? Five predictor blocks, two global factors plus one factor per block, direct forecasting regressions for core PCE, a current-signal decomposition and a pseudo-real-time news decomposition, disagreement statistics, nearest-neighbor analogs, and a descriptive supply-versus-demand cut. Data: latest-vintage FRED (CSV endpoint). Non-FRED, flagged: the SPF median and dispersion (Philadelphia Fed) and the excess bond premium (Federal Reserve). Pseudo-out-of-sample results on revised data are not real-time results.
+Report generated September 08, 2026; data through September 2026.
+
+**Summary**
+
+- Core PCE runs at 3.3 percent over 12 months and 3.0 over 3 months; the median across eleven measures is 2.7, and 10 of 11 measures show 3m below 12m.
+- The factor model projects 3.3 / 3.3 / 3.2 percent over 3/6/12 months, a change of -0.08 pp at 12 months; the probability of lower inflation over 12 months is 53% (normal approximation) to 75% (logit).
+- Out of sample the factors do not beat inflation history (relative RMSFE 1.14 at 12 months); the distribution block is the only factor with a significant coefficient.
+- Breadth: 56 percent of categories above 3 percent at 12 months (65th percentile), 45 percent at 3 months (45th).
+- Financial conditions sit at the 75th percentile on the loose side; demand at the 35th; expectations are the outlier, with households +1.9 pp above professionals and SPF dispersion at the 95th percentile.
+- Cross-block disagreement is at the 41st percentile; the closest analogs are 2014-03, 2006-03, 2004-04, 2007-07, after which core PCE changed by +0.09 pp (median) over 12 months.
+- Current regime: adverse-supply-like (infl high, demand weak).
 
 
-## 1. Data and block-level structure
+## Introduction
 
-92 of 92 FRED series downloaded; SPF through 2026-07 (30 forecasters); EBP through 2026-07. Failed: none. Short history (start after 1995): T5YIE, T10YIE, T5YIFR, JTSJOL, JTSQUR, ECIWAG, DFII10, DTWEXBGS, CUSR0000SEHB, CUSR0000SEHG. Full verification and data dictionary in cache/.
+The question is what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and whether today's configuration resembles past episodes. The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
 
-Block 1, inflation measures: annualized 1/3/6/12-month rates for CPI, core CPI, PCE, core PCE, CPI services ex energy and PCE services (exact from index levels) and for median, trimmed-mean, sticky and flexible measures (3m and 6m as rolling means of the published 1-month annualized rate); momentum as 3m-12m, 6m-12m, changes in the 12m rate over 3/6/12 months, and acceleration (3m rate minus its value three months earlier).
+All of these are treated as potentially useful signals for future inflation rather than sorted into 'measures of underlying inflation' and 'predictors'. A measure of underlying inflation is useful partly because it extracts the persistent, forecast-relevant component of current inflation, so the two roles are not distinct.
+
+The approach has five steps. Predictors are organized into five blocks and each block is examined on its own. Two global factors are extracted from the full panel and one factor from each block's residual. Core PCE inflation is forecast at 3, 6, and 12 months with nested direct regressions. The current forecast is decomposed into contributions from inflation history and each factor, and forecast revisions are decomposed into news. Finally, disagreement across signals is measured, historical analogs are found, and disagreement is related to supply-like and demand-like episodes.
+
+> Data are latest-vintage FRED series (CSV endpoint, no key). Two inputs are not on FRED and are flagged where used: the Survey of Professional Forecasters individual CPI forecasts (Philadelphia Fed) and the excess bond premium (Federal Reserve). Pseudo-out-of-sample results computed on revised data are not real-time results; the data loader is isolated so that ALFRED vintages can be substituted later.
+
+
+## 1. The five blocks
+
+92 of 92 FRED series were downloaded and verified (first and last observations are in cache/series_verification.csv). Series starting after 1995 and therefore imputed in the early sample: T5YIE, T10YIE, T5YIFR, JTSJOL, JTSQUR, ECIWAG, DFII10, DTWEXBGS, CUSR0000SEHB, CUSR0000SEHG. The panel runs from 1985, when the breadth block first has at least 20 categories.
+
+For each block the same diagnostic is shown: the variables are standardized, a principal-components decomposition is computed, and four panels report the scree (evidence of one versus several dimensions), the correlation of each variable with the first component (closer to one means more aligned with the block's common factor), the first component over time as a one-line summary of the block, and the residuals from the one-factor fit as a heatmap (whether recent months look different from history).
+
+
+### Block 1: inflation measures
+
+*Block 1 contents*
+
+| Indicators | Source | Transformation |
+|---|---|---|
+| CPI, core CPI, PCE, core PCE, CPI services ex energy, PCE services | BLS, BEA (index levels) | annualized 1/3/6/12-month log changes |
+| Median CPI, 16% trimmed-mean CPI | Cleveland Fed (1-month annualized and 12-month rates) | 3m and 6m as rolling means of the 1-month rate |
+| Trimmed-mean PCE | Dallas Fed | as above |
+| Sticky, core sticky, flexible, core flexible CPI | Atlanta Fed | as above |
+| Momentum for every measure | derived | 3m minus 12m, 6m minus 12m, change in the 12m rate over 3/6/12 months, acceleration (3m rate minus its value three months earlier) |
+
+Alternative measures and transformations of aggregate inflation: annualized 1/3/6/12-month rates for CPI, core CPI, PCE, core PCE, CPI services ex energy and PCE services (exact from index levels) and for median, trimmed-mean, sticky and flexible measures (3m and 6m as rolling means of the published 1-month annualized rate); momentum as 3m-12m, 6m-12m, changes in the 12m rate over 3/6/12 months, and acceleration (3m rate minus its value three months earlier).
 
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-Block 1, inflation measures: 118 variables from 1985-01; PC1-3 explain 36 / 20 / 10% of variance; PC1 today -1.4 (45th percentile). Largest one-factor residuals now: cpi_flex_accel -2.5, cpi_accel -2.2, pce_accel -1.8.
+118 variables from 1985-01. The first three components explain 36, 20, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at -1.4 today, the 45th percentile of its history. The largest deviations from what the common factor implies are cpi_flex_accel (-2.5 sd), cpi_accel (-2.2 sd), pce_accel (-1.8 sd).
 
-Block 2, price-change distribution: cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI expenditure categories from FRED (SA), selected so that no category nests another; unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.
+
+### Block 2: price-change distribution
+
+*Block 2 contents: 34 CPI expenditure categories (FRED, seasonally adjusted)*
+
+| Group | Categories |
+|---|---|
+| Food (7) | cereals; meats, poultry, fish, eggs; dairy; fruits and vegetables; other food at home; food away from home; alcohol |
+| Energy (4) | gasoline; fuel oil; electricity; utility gas |
+| Core goods (12) | men's, women's and infants' apparel; footwear; new and used vehicles; vehicle parts; medical commodities; household furnishings; tobacco; recreation commodities; educational books |
+| Services (11) | rent; owners' equivalent rent; lodging away from home; water and sewer; professional medical and hospital services; vehicle maintenance; public transportation; tuition and childcare; personal care; other services |
+| Statistics | shares above 0/2/3/4/5 percent, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share; each at 3, 6 and 12 months |
+
+Cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI expenditure categories from FRED (SA), selected so that no category nests another; unbalanced panel (22 categories in the late 1980s, 34 from 1998; minimum 20). Shares above 0/2/3/4/5%, shares accelerating and decelerating, SD, IQR, 90-10 spread, skewness, median, upper-tail share. Unweighted only (BLS relative importances are not on FRED; WEIGHTS is the hook). A BEA detailed-PCE panel would be the upgrade.
 
 ![Block 2, price-change distribution](figures/block_dist.png)
 *Block 2, price-change distribution*
 
-Block 2, price-change distribution: 39 variables from 1985-01; PC1-3 explain 42 / 17 / 12% of variance; PC1 today -0.0 (55th percentile). Largest one-factor residuals now: upper_tail_share_6m +1.7, share_decel_3m +1.4, xs_iqr_12m -1.4.
+39 variables from 1985-01. The first three components explain 42, 17, and 12 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 today, the 55th percentile of its history. The largest deviations from what the common factor implies are upper_tail_share_6m (+1.7 sd), share_decel_3m (+1.4 sd), xs_iqr_12m (-1.4 sd).
 
-Block 3, expectations: Michigan 1y, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI median and SPF 10y, 5y/10y/5y5y breakevens; disagreement as the SPF cross-sectional IQR and SD and as spreads between households, professionals, the Cleveland model and markets; near minus long horizons. Michigan 5-10y expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.
+
+### Block 3: inflation expectations
+
+*Block 3 contents*
+
+| Group | Indicators |
+|---|---|
+| Households | Michigan 1-year median expectation |
+| Professionals | SPF median 4-quarter-ahead CPI; SPF 10-year CPI (Philadelphia Fed) |
+| Model-based | Cleveland Fed 1-year and 10-year expected inflation |
+| Markets | 5-year, 10-year and 5y5y forward breakevens |
+| Disagreement | SPF cross-sectional IQR and SD of the 4-quarter forecast; households minus professionals; households minus markets; professionals minus the Cleveland model |
+| Term structure | 1-year minus 10-year for Michigan/Cleveland, SPF 4q minus 10y, 5y minus 5y5y breakevens |
+
+Levels of expected inflation, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI median and SPF 10y, 5y/10y/5y5y breakevens; disagreement as the SPF cross-sectional IQR and SD and as spreads between households, professionals, the Cleveland model and markets; near minus long horizons. Michigan 5-10y expectations and Michigan respondent dispersion are not on FRED and are omitted rather than proxied.
 
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-Block 3, expectations: 17 variables from 1985-01; PC1-3 explain 31 / 28 / 13% of variance; PC1 today +0.7 (56th percentile). Largest one-factor residuals now: bei_5y +0.5, bei_5y_less_5y5y +0.5, bei_10y +0.5.
+17 variables from 1985-01. The first three components explain 31, 28, and 13 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.7 today, the 56th percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_5y_less_5y5y (+0.5 sd), bei_10y (+0.5 sd).
 
-Block 4, demand and labor: rates in levels (and 12-month changes for unemployment), quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.
+
+### Block 4: demand and labor
+
+*Block 4 contents*
+
+| Group | Indicators |
+|---|---|
+| Labor market | unemployment rate and its 12-month change; payroll growth (3m, 12m); initial claims (log level, 3-month change); job openings to unemployed; quits rate |
+| Wages | average hourly earnings (3m, 12m); ECI wages and salaries (yoy, quarterly); compensation of employees (12m) |
+| Activity and demand | real PCE (6m, 12m); real retail sales (6m); industrial production (6m, 12m); capacity utilization; real private investment (yoy, quarterly); real GDP (yoy, quarterly); Michigan sentiment |
+
+Rates in levels (and 12-month changes for unemployment), quantities as annualized 3/6-month or 12-month log growth, quarterly series spread over their quarter. Real business fixed and residential investment on FRED start in 2007, so total real private investment stands in.
 
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-Block 4, demand and labor: 21 variables from 1985-01; PC1-3 explain 44 / 19 / 9% of variance; PC1 today -0.4 (31st percentile). Largest one-factor residuals now: claims_log -1.6, unrate -1.1, ahe_3m -0.3.
+21 variables from 1985-01. The first three components explain 44, 19, and 9 percent of the variance, which points to one dominant dimension. The first component stands at -0.4 today, the 31st percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
 
-Block 5, financial conditions and risk pricing: monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. The factor is oriented so that positive = looser.
+
+### Block 5: financial conditions and risk pricing
+
+*Block 5 contents*
+
+| Group | Indicators |
+|---|---|
+| Rates | fed funds and its 12-month change; 2- and 10-year Treasury yields; 2s10s slope; 10-year TIPS yield; 10-year minus Cleveland 10-year expectations |
+| Conditions indexes | Chicago Fed NFCI and adjusted NFCI |
+| Risk pricing | VIX; Baa minus 10-year; GZ spread and excess bond premium; Kim-Wright 10-year term premium; mortgage spread |
+| Asset prices | Nasdaq 3- and 12-month returns; broad dollar 12-month change (spliced index); WTI oil 3- and 12-month changes; PPI all commodities 12-month change |
+| Credit supply | SLOOS net tightening of C&I standards (quarterly) |
+
+Monthly averages of daily data; policy and Treasury rates, term spread, real rates (TIPS and 10y minus Cleveland expectations), NFCI and adjusted NFCI, VIX, Baa spread, GZ spread and excess bond premium, term premium, equity returns (Nasdaq; the S&P 500 on FRED is limited to ten years), a spliced broad dollar, oil and commodity prices, SLOOS standards, mortgage spread. The factor is oriented so that positive = looser.
 
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-Block 5, financial conditions (+ = looser): 22 variables from 1985-01; PC1-3 explain 27 / 25 / 10% of variance; PC1 today +1.6 (79th percentile). Largest one-factor residuals now: real_10y_tips +1.6, mortgage_spread +0.7, term_2s10s -0.5.
+22 variables from 1985-01. The first three components explain 27, 25, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +1.6 today, the 79th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.6 sd), mortgage_spread (+0.7 sd), term_2s10s (-0.5 sd).
 
 
 ## 2. Factor structure
 
-Panel: 217 variables, 1985-01 to 2026-07. Two global PCs on the standardized panel explain 46% of its variance (G1 30%, G2 16%); one PC per block on the residual explains infl 23%, dist 26%, exp 48%, dem 40%, fin 33% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.96, G2 0.95, B_infl 0.85, B_dist 0.81, B_exp 0.90, B_dem 0.80, B_fin 0.98.
+The factor model is X = Lambda_G G + lambda_B B + e: two global factors common to the whole panel and one factor specific to each block. The implementation is simple: standardize the panel, extract two principal components, subtract the fitted global component, and take the first principal component of each block's residual. Signs are normalized so that every factor is oriented as inflationary pressure (the financial factor: looser conditions). A VAR(1) on the seven factors provides the dynamics used in the news decomposition.
+
+The panel has 217 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 46% of its variance (G1 30%, G2 16%); one PC per block on the residual explains infl 23%, dist 26%, exp 48%, dem 40%, fin 33% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.96, G2 0.95, B_infl 0.85, B_dist 0.81, B_exp 0.90, B_dem 0.80, B_fin 0.98.
 
 - G1 loads on: cpi_trim_3m (+0.12), cpi_12m (+0.11), pce_12m (+0.11)
 - G2 loads on: cpi_sticky_3m_less_12m (+0.13), cpi_core_sticky_3m_less_12m (+0.13), cpi_sticky_6m_less_12m (+0.13)
@@ -62,9 +151,11 @@ Panel: 217 variables, 1985-01 to 2026-07. Two global PCs on the standardized pan
 
 ## 3. Forecasting core PCE
 
-Targets: future annualized core PCE over 3/6/12/24 months, its change relative to today's 12m rate, and the deceleration indicator. Direct regressions with three nested information sets: M1 inflation history and momentum, M2 plus the global factors, M3 plus the block factors. Expanding-window pseudo-out-of-sample from 2000 with full-sample factor loadings (a look-ahead in the factor construction).
+Core PCE is the target. The dependent variables are future annualized core PCE inflation over 3, 6, 12 and 24 months, its change relative to today's 12-month rate, and an indicator for deceleration. Three nested direct regressions are compared: M1 uses inflation history and momentum only (12m rate, its 12-month lag, 3m and 6m rates, the 3-month change in the 12m rate, acceleration); M2 adds the two global factors; M3 adds the five block factors.
 
-**Out-of-sample RMSFE, RMSFE relative to M1, and directional accuracy for acceleration/deceleration, by horizon (months)**
+Forecasts are evaluated pseudo-out-of-sample with an expanding window, its change relative to today's 12m rate, and the deceleration indicator. Direct regressions with three nested information sets: M1 inflation history and momentum, M2 plus the global factors, M3 plus the block factors. Expanding-window pseudo-out-of-sample from 2000 with full-sample factor loadings (a look-ahead in the factor construction).
+
+*Out-of-sample RMSFE, RMSFE relative to M1, and directional accuracy for acceleration/deceleration, by horizon (months)*
 
 | model | RMSFE 3 | RMSFE 6 | RMSFE 12 | rel_RMSFE 3 | rel_RMSFE 6 | rel_RMSFE 12 | dir_acc 3 | dir_acc 6 | dir_acc 12 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -72,7 +163,7 @@ Targets: future annualized core PCE over 3/6/12/24 months, its change relative t
 | M2 +global | 0.96 | 0.83 | 0.86 | 1.02 | 1.02 | 1.03 | 0.51 | 0.54 | 0.59 |
 | M3 +global+block | 0.99 | 0.89 | 0.95 | 1.05 | 1.09 | 1.14 | 0.52 | 0.54 | 0.53 |
 
-**In-sample factor coefficients (HAC t-statistics, lag = horizon) in the M3 regression**
+*In-sample factor coefficients (HAC t-statistics, lag = horizon) in the M3 regression*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
@@ -88,7 +179,7 @@ Targets: future annualized core PCE over 3/6/12/24 months, its change relative t
 
 ## 4. What the model says today
 
-**Forecast origin July 2026; annualized percent; band from the out-of-sample RMSFE**
+*Forecast origin July 2026; annualized percent; band from the out-of-sample RMSFE*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
@@ -103,12 +194,15 @@ Targets: future annualized core PCE over 3/6/12/24 months, its change relative t
 
 ## 5. Current-signal and news decompositions
 
-Current-signal decomposition: for the linear M3 equation each contribution is the coefficient times the current value's deviation from its sample mean, so contributions sum to the forecast's deviation from the target's mean. This says which signals, at their current values, push the forecast away from its mean; it is not a news decomposition.
+
+### Current-signal decomposition
+
+For the linear M3 equation each contribution is the coefficient times the current value's deviation from its sample mean, so contributions sum to the forecast's deviation from the target's mean. This says which signals, at their current values, push the forecast away from its mean; it is not a news decomposition.
 
 ![Current-signal decomposition of the core PCE forecast.](figures/decomposition.png)
 *Current-signal decomposition of the core PCE forecast.*
 
-**Contributions (pp)**
+*Contributions (pp)*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
@@ -123,7 +217,10 @@ Current-signal decomposition: for the linear M3 equation each contribution is th
 | financial | 0.11 | 0.06 | 0.06 |
 | forecast | 3.28 | 3.24 | 3.19 |
 
-Pseudo-real-time news decomposition: the factor system in state-space form (loadings from the PCA, VAR(1) dynamics, diagonal idiosyncratic variances), filtered month by month through the ragged edge (Sep 2026). News in each released series is its surprise relative to the previous month's information set; the revision of the factor-only 12m forecast is attributed through the Kalman gain. Latest-vintage values, so data revisions are ignored and publication lags enter only at the ragged edge. Filtered factors track the PCA factors (correlations G1 1.00, G2 0.99, B_infl 0.99, B_dist 0.98, B_exp 0.99, B_dem 0.98, B_fin 0.98). Sep 2026 revision +0.15 pp (exp +0.16, fin -0.01); cumulative over 12 months +0.37 pp; largest monthly revision Jun 2026 (0.72).
+
+### News decomposition
+
+The factor system in state-space form (loadings from the PCA, VAR(1) dynamics, diagonal idiosyncratic variances), filtered month by month through the ragged edge (Sep 2026). News in each released series is its surprise relative to the previous month's information set; the revision of the factor-only 12m forecast is attributed through the Kalman gain. Latest-vintage values, so data revisions are ignored and publication lags enter only at the ragged edge. Filtered factors track the PCA factors (correlations G1 1.00, G2 0.99, B_infl 0.99, B_dist 0.98, B_exp 0.99, B_dem 0.98, B_fin 0.98). Sep 2026 revision +0.15 pp (exp +0.16, fin -0.01); cumulative over 12 months +0.37 pp; largest monthly revision Jun 2026 (0.72).
 
 ![News decomposition of forecast revisions.](figures/news.png)
 *News decomposition of forecast revisions.*
@@ -131,9 +228,11 @@ Pseudo-real-time news decomposition: the factor system in state-space form (load
 
 ## 6. Agreement and disagreement
 
+Do today's indicators agree about inflation more or less than they usually do? Four complementary measures are used.
+
 A: cross-sectional SD of the seven standardized factors. B: residual RMS after fitting one common factor to the seven signals (it explains 40% of their variance): how poorly can today's signals be reconciled by one common state? C: SD across the eleven alternative inflation measures (pp). D: breadth versus dispersion within the distribution block.
 
-**Disagreement measures, current value and history**
+*Disagreement measures, current value and history*
 
 |  | current | percentile | median | p90 |
 |---|---|---|---|---|
@@ -151,9 +250,11 @@ A: cross-sectional SD of the seven standardized factors. B: residual RMS after f
 
 ## 7. Historical analogs
 
+When in the past did the configuration of inflation signals look most like today?
+
 Nearest neighbors of today's standardized factor vector (Euclidean distance, excluding the last 24 months, at most one match per six-month window). Across the 15 analogs the median subsequent 12m core PCE is 1.70 (median change +0.09 pp, decelerating in 40%). Matching on the pattern of disagreement instead gives 2006-12, 2006-03, 1993-10, 2005-06, 1997-09 (median change -0.01). Not causal.
 
-**Analogs on the factor vector, origin Jul 2026**
+*Analogs on the factor vector, origin Jul 2026*
 
 |  | distance | core PCE 12m then | next 3m | next 6m | next 12m | change 12m ahead | D_res then |
 |---|---|---|---|---|---|---|---|
@@ -176,9 +277,11 @@ Nearest neighbors of today's standardized factor vector (Euclidean distance, exc
 
 ## 8. Supply-like versus demand-like episodes and disagreement
 
+Hypothesis: disagreement between inflation indicators and demand or financial indicators may be especially common when inflation is driven by supply or relative-price shocks rather than aggregate demand. This section is descriptive: episodes are classified by inflation and demand, disagreement is compared across them, and its correlates and predictive content are tested.
+
 Regimes from core PCE 12m and the demand block's first PC, each above or below its median. Current regime: adverse-supply-like (infl high, demand weak). Descriptive only; a sign-restricted VAR or external instruments would be the structural extension.
 
-**Disagreement by regime**
+*Disagreement by regime*
 
 |  | months | D_res mean | D_res median | share D_res > p75 | next-12m change, median |
 |---|---|---|---|---|---|
@@ -187,7 +290,7 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 | favorable-supply-like (infl low, demand strong) | 110 | 0.52 | 0.51 | 0.07 | -0.01 |
 | weak-demand (infl low, demand weak) | 140 | 0.76 | 0.64 | 0.29 | 0.04 |
 
-**Contemporaneous correlates of disagreement (standardized regressors, HAC t)**
+*Contemporaneous correlates of disagreement (standardized regressors, HAC t)*
 
 |  | corr | t (HAC) |
 |---|---|---|
@@ -197,7 +300,7 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 | oil_12m | -0.11 | -0.67 |
 | abs_oil_12m | 0.45 | 4.15 |
 
-**Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)**
+*Subsequent change in core PCE on disagreement, current inflation, and the demand factor (HAC t)*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
@@ -212,7 +315,9 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 
 ## 9. Additional evidence
 
-**Probability that core PCE inflation is lower over the next h months than the current 12m rate**
+Four further pieces of evidence feed the answers in the next section: the probability that inflation will be lower over each horizon, a horse race of individual statistics as additions to core PCE 12m, the history of inflation conditional on breadth, and an event study of episodes in which the 3-month rate fell well below the 12-month rate.
+
+*Probability that core PCE inflation is lower over the next h months than the current 12m rate*
 
 |  | 3m | 6m | 12m |
 |---|---|---|---|
@@ -220,7 +325,7 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 | P(lower) logit | 0.66 | 0.74 | 0.75 |
 | unconditional | 0.51 | 0.57 | 0.57 |
 
-**Horse race: each statistic added to core PCE 12m; relative RMSFE < 1 beats core PCE 12m alone**
+*Horse race: each statistic added to core PCE 12m; relative RMSFE < 1 beats core PCE 12m alone*
 
 | measure | rel RMSFE 3m | rel RMSFE 6m | rel RMSFE 12m | corr with core PCE 12m | type |
 |---|---|---|---|---|---|
@@ -241,7 +346,7 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 | SPF dispersion | 1.04 | 1.07 | 1.07 | 0.36 | no gain |
 | Michigan 1y | 1.01 | 1.03 | 1.03 | 0.60 | no gain |
 
-**Conditional history by breadth (share of categories above 3% at 12m)**
+*Conditional history by breadth (share of categories above 3% at 12m)*
 
 |  | high breadth (top quartile) | low breadth (bottom quartile) | all |
 |---|---|---|---|
@@ -252,7 +357,7 @@ Regimes from core PCE 12m and the demand block's first PC, each above or below i
 | mean change | -0.37 | 0.19 | -0.02 |
 | P(decelerate) | 0.69 | 0.52 | 0.56 |
 
-**Spells with core PCE 3m at least 1 pp below 12m**
+*Spells with core PCE 3m at least 1 pp below 12m*
 
 | date | core 12m | gap | 12m change ahead | turning point | reaccelerated within 6m |
 |---|---|---|---|---|---|

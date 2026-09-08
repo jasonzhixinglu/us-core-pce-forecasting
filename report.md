@@ -44,12 +44,12 @@ For each block the same diagnostic is shown: the variables are standardized, a p
 | Sticky, core sticky, flexible, core flexible CPI | Atlanta Fed | as above |
 | Momentum for every measure | derived | 3m minus 12m, 6m minus 12m, change in the 12m rate over 3/6/12 months, acceleration (3m rate minus its value three months earlier) |
 
-Alternative measures and transformations of aggregate inflation: annualized 1/3/6/12-month rates for CPI, core CPI, PCE, core PCE, CPI services ex energy and PCE services (exact from index levels) and for median, trimmed-mean, sticky and flexible measures (3m and 6m as rolling means of the published 1-month annualized rate); momentum as 3m-12m, 6m-12m, changes in the 12m rate over 3/6/12 months, and acceleration (3m rate minus its value three months earlier).
+For the principal indexes the multi-horizon rates capture the level of inflation and the momentum terms whether it is accelerating or decelerating; the median, trimmed, sticky and flexible measures add alternative filters of the same aggregate.
 
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-118 variables from 1985-01. The first three components explain 36, 20, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at -1.4 today, the 45th percentile of its history. The largest deviations from what the common factor implies are cpi_flex_accel (-2.5 sd), cpi_accel (-2.2 sd), pce_accel (-1.8 sd).
+118 variables from 1985-01. The first three components explain 36, 20, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at -0.2 standard deviations today, the 45th percentile of its history. The largest deviations from what the common factor implies are cpi_flex_accel (-2.5 sd), cpi_accel (-2.2 sd), pce_accel (-1.8 sd).
 
 
 ### Block 2: price-change distribution
@@ -69,7 +69,7 @@ Cross-sectional statistics of annualized 3/6/12-month inflation across 34 CPI ex
 ![Block 2, price-change distribution](figures/block_dist.png)
 *Block 2, price-change distribution*
 
-39 variables from 1985-01. The first three components explain 42, 17, and 12 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 today, the 55th percentile of its history. The largest deviations from what the common factor implies are upper_tail_share_6m (+1.7 sd), share_decel_3m (+1.4 sd), xs_iqr_12m (-1.4 sd).
+39 variables from 1985-01. The first three components explain 42, 17, and 12 percent of the variance, which points to one dominant dimension. The first component stands at -0.0 standard deviations today, the 55th percentile of its history. The largest deviations from what the common factor implies are upper_tail_share_6m (+1.7 sd), share_decel_3m (+1.4 sd), xs_iqr_12m (-1.4 sd).
 
 
 ### Block 3: inflation expectations
@@ -90,7 +90,7 @@ Levels of expected inflation, Cleveland Fed 1y/10y, SPF 4-quarter-ahead CPI medi
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-17 variables from 1985-01. The first three components explain 31, 28, and 13 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.7 today, the 56th percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_5y_less_5y5y (+0.5 sd), bei_10y (+0.5 sd).
+17 variables from 1985-01. The first three components explain 31, 28, and 13 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.2 standard deviations today, the 56th percentile of its history. The largest deviations from what the common factor implies are bei_5y (+0.5 sd), bei_5y_less_5y5y (+0.5 sd), bei_10y (+0.5 sd).
 
 
 ### Block 4: demand and labor
@@ -108,7 +108,7 @@ Rates in levels (and 12-month changes for unemployment), quantities as annualize
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-21 variables from 1985-01. The first three components explain 44, 19, and 9 percent of the variance, which points to one dominant dimension. The first component stands at -0.4 today, the 31st percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
+21 variables from 1985-01. The first three components explain 44, 19, and 9 percent of the variance, which points to one dominant dimension. The first component stands at -0.1 standard deviations today, the 31st percentile of its history. The largest deviations from what the common factor implies are claims_log (-1.6 sd), unrate (-1.1 sd), ahe_3m (-0.3 sd).
 
 
 ### Block 5: financial conditions and risk pricing
@@ -128,7 +128,7 @@ Monthly averages of daily data; policy and Treasury rates, term spread, real rat
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-22 variables from 1985-01. The first three components explain 27, 25, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +1.6 today, the 79th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.6 sd), mortgage_spread (+0.7 sd), term_2s10s (-0.5 sd).
+22 variables from 1985-01. The first three components explain 27, 25, and 10 percent of the variance, which points to at least two dimensions of comparable size. The first component stands at +0.7 standard deviations today, the 79th percentile of its history. The largest deviations from what the common factor implies are real_10y_tips (+1.6 sd), mortgage_spread (+0.7 sd), term_2s10s (-0.5 sd).
 
 
 ## 2. Factor structure

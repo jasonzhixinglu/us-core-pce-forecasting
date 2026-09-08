@@ -252,7 +252,6 @@ R.table(pd.DataFrame([["CPI, core CPI, PCE, core PCE, CPI services ex energy, PC
                       ["Momentum for every measure", "derived", "3m minus 12m, 6m minus 12m, change in the 12m rate over 3/6/12 months, acceleration (3m rate minus its value three months earlier)"]],
                      columns=["Indicators", "Source", "Transformation"]).set_index("Indicators"), "Block 1 contents", small=True)
 R.p("For the principal indexes the multi-horizon rates capture the level of inflation and the momentum terms whether it is accelerating or decelerating; the median, trimmed, sticky and flexible measures add alternative filters of the same aggregate.")
-    "(3m and 6m as rolling means of the published 1-month annualized rate); momentum as 3m-12m, 6m-12m, changes in the 12m rate over 3/6/12 months, and acceleration (3m rate minus its value three months earlier).")
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")
 
 # ------------------------------------------------------------------ block 2: distribution

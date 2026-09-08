@@ -12,7 +12,7 @@ Data: latest-vintage FRED (CSV endpoint, no key). Non-FRED, flagged: SPF individ
 forecasts (Philadelphia Fed) and the Gilchrist-Zakrajsek excess bond premium (Federal
 Reserve). Not a real-time evaluation; swap fred() for an ALFRED loader to go real-time.
 """
-import io, sys, time, warnings, html
+import io, sys, time, warnings, html, subprocess
 from pathlib import Path
 import numpy as np, pandas as pd, requests
 import matplotlib; matplotlib.use("Agg")
@@ -25,8 +25,9 @@ plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.r
 
 HERE = Path(__file__).resolve().parent; CACHE = HERE / "cache"; FIG = HERE / "figures"
 sys.path.insert(0, str(HERE)); from text import TEXT, READING, BLOCK_PROSE   # editable prose lives in text.py
+import dfm_spec   # shared DFM specification, so the cached fit matches the model used here
 for d in (CACHE, FIG): d.mkdir(exist_ok=True)
-REFRESH = "--refresh" in sys.argv
+REFRESH = "--refresh" in sys.argv; REFIT = "--refit" in sys.argv   # --refit re-runs the DFM EM (slow); otherwise cached parameters are reused
 START = "1985-01-01"; OOS_START = "2000-01-01"; H = [3, 6, 12, 24]
 UA = {"User-Agent": "Mozilla/5.0"}
 t0 = time.time()
@@ -345,24 +346,44 @@ END = B1["pce_core_12m"].dropna().index[-1]; X = X[X.index <= END]; Z = zscore(X
 DICT = pd.DataFrame({"block": [b for b, _ in X.columns], "first_obs": [X[c].first_valid_index().date() for c in X.columns]}, index=[c for _, c in X.columns]); DICT.to_csv(CACHE / "data_dictionary.csv")
 
 R.h(2, "2. Factor structure")
-G, LG, exG, Zfill = pca(Z, 2)
-sign = lambda f, ref: f * np.sign(np.corrcoef(f, ref.reindex(f.index).fillna(0))[0, 1])
-G["PC1"] = sign(G["PC1"], Z[("infl", "pce_core_12m")]); G["PC2"] = sign(G["PC2"], Z["dem"].mean(axis=1)); G.columns = ["G1", "G2"]; LG.columns = ["G1", "G2"]
-LG["G1"] *= np.sign(np.corrcoef(G["G1"], Zfill.values @ LG["G1"].values)[0, 1]); LG["G2"] *= np.sign(np.corrcoef(G["G2"], Zfill.values @ LG["G2"].values)[0, 1])
-resid = Zfill - pd.DataFrame(G.values @ np.linalg.lstsq(G.values, Zfill.values, rcond=None)[0], index=Z.index, columns=Z.columns)
+# Dynamic factor model: two global factors loading on the whole panel plus one factor per block,
+# all seven evolving as a joint VAR(1), with AR(1) idiosyncratic components. Estimated by EM; the
+# Kalman smoother handles missing values and the ragged edge, so no imputation step is needed.
+PARAMS = CACHE / dfm_spec.PARAMS_FILE; PANEL = CACHE / dfm_spec.PANEL_FILE
+dfm_spec.save_panel(PANEL, X, BLOCKS, END)                # so fit_dfm.py can estimate without rebuilding
+stamp = dfm_spec.stamp_of(X, END)
+params = None if REFIT else dfm_spec.load_params(PARAMS, stamp)
+if params is None:                                        # estimate in a separate process: see dfm_spec
+    print("estimating the DFM (fit_dfm.py, separate process); this is the slow step")
+    subprocess.run([sys.executable, str(HERE / "fit_dfm.py")], check=True)
+    params = dfm_spec.load_params(PARAMS, stamp)
+    if params is None: sys.exit("fit_dfm.py did not produce parameters for the current panel")
+meta = np.load(PARAMS); dfm = dfm_spec.build(X, BLOCKS); dfm_res = dfm.smooth(params)
+dfm_note = ("EM, " + str(int(meta["iterations"])) + " iterations" + ("" if bool(meta["converged"]) else ", NOT CONVERGED"))
+F = dfm_res.factors.smoothed.rename(columns={"Global.1": "G1", "Global.2": "G2", **{b: f"B_{b}" for b in BLOCKS}})
+F = F[["G1", "G2"] + [f"B_{b}" for b in BLOCKS]]
 REF = {"infl": ("infl", "pce_core_12m"), "dist": ("dist", "share_gt3_12m"), "exp": ("exp", "mich_1y"), "dem": ("dem", "payrolls_12m"), "fin": ("fin", "nfci")}
-Bf, exB, LB = {}, {}, {}
-for b in BLOCKS:
-    sc, ld, ex, _ = pca(resid[b].where(Z[b].notna()), 1); sg = np.sign(np.corrcoef(sc["PC1"], Z[REF[b]].fillna(0))[0, 1]) * (-1 if b == "fin" else 1)
-    Bf[f"B_{b}"] = sg * sc["PC1"]; exB[b] = ex[0]; LB[b] = sg * ld["PC1"]
-F = pd.concat([G, pd.DataFrame(Bf)], axis=1); Fz = zscore(F)
+sgn = lambda f, ref: np.sign(np.corrcoef(f, ref.reindex(f.index).fillna(0))[0, 1])
+F["G1"] *= sgn(F["G1"], Z[("infl", "pce_core_12m")]); F["G2"] *= sgn(F["G2"], Z["dem"].mean(axis=1))
+for b in BLOCKS: F[f"B_{b}"] *= sgn(F[f"B_{b}"], Z[REF[b]]) * (-1 if b == "fin" else 1)
+F = zscore(F); Fz = F   # factor scale is not identified; work in standard deviations throughout
+# Loadings by projection of the standardized panel on the standardized factors: used for the
+# descriptive text and for the news decomposition in section 5.
+Zfill = Z.fillna(0.0)
+LAM = pd.DataFrame(np.linalg.lstsq(F.values, Zfill.values, rcond=None)[0].T, index=Z.columns, columns=F.columns)
+LG = LAM[["G1", "G2"]]; LB = {b: LAM.loc[LAM.index.get_level_values(0) == b, f"B_{b}"] for b in BLOCKS}
+fit_all = pd.DataFrame(F.values @ LAM.values.T, index=Z.index, columns=Z.columns)
+fit_g = pd.DataFrame(F[["G1", "G2"]].values @ LG.values.T, index=Z.index, columns=Z.columns)
+r2 = lambda fit: (1 - (Zfill - fit).var() / Zfill.var()).groupby(level=0).mean()
+R2_G, R2_ALL = r2(fit_g), r2(fit_all)
 var = VAR(F.dropna()).fit(1); persist = pd.Series(np.diag(var.coefs[0]), index=F.columns)
 top = lambda ld, k=3: ", ".join(f"{vname(c)} ({v:+.2f})" for c, v in ld.reindex(ld.abs().sort_values().index[-k:][::-1]).items())
 R.p(TEXT["p15_the_factor_model_is_x_lambda"])
-R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m}. Two global PCs on the standardized panel explain {100*exG.sum():.0f}% of its variance (G1 {100*exG[0]:.0f}%, G2 {100*exG[1]:.0f}%); "
-    f"one PC per block on the residual explains {', '.join(f'{b} {100*v:.0f}%' for b, v in exB.items())} of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). "
+R.p(f"The panel has {X.shape[1]} variables from {X.index[0]:%Y-%m} to {END:%Y-%m} ({dfm_note}). Averaged over the series in each block, the two global factors account for "
+    f"{', '.join(f'{b} {100*v:.0f}%' for b, v in R2_G.items())} of the variance, and all seven factors together for {', '.join(f'{b} {100*v:.0f}%' for b, v in R2_ALL.items())}. "
+    f"Every factor is oriented so that higher = more inflationary pressure (financial: looser) and scaled to unit standard deviation. "
     f"VAR(1) own-persistence: {', '.join(f'{k} {v:.2f}' for k, v in persist.items())}.")
-LGc = {g: Zfill.corrwith((G[g] - G[g].mean()) / G[g].std()) for g in ("G1", "G2")}
+LGc = {g: Zfill.corrwith(F[g]) for g in ("G1", "G2")}
 def describe_global(l, k=10):
     tp = l.reindex(l.abs().sort_values(ascending=False).index[:k]); pos, neg = tp[tp > 0], tp[tp < 0]
     def side(x):
@@ -385,10 +406,11 @@ Y = pd.DataFrame({f"pi_fut_{h}": 1200 / h * (logp.shift(-h) - logp) for h in H})
 for h in H: Y[f"dpi_{h}"] = Y[f"pi_fut_{h}"] - pi12; Y[f"decel_{h}"] = (Y[f"dpi_{h}"] < 0).astype(float).where(Y[f"dpi_{h}"].notna())
 pi3c, pi6c = B1["pce_core_3m"], B1["pce_core_6m"]
 HIST = pd.DataFrame({"pi12": pi12, "pi12_lag12": pi12.shift(12), "pi3": pi3c, "pi6": pi6c, "d3_pi12": pi12 - pi12.shift(3), "accel": pi3c - pi3c.shift(3)})
+HF = [3, 6, 12, 24]   # forecast horizons reported in sections 3-5
 SETS = {"M1 history": list(HIST.columns), "M2 +global": list(HIST.columns) + ["G1", "G2"], "M3 +global+block": list(HIST.columns) + list(F.columns)}
 D = pd.concat([HIST, F, Y], axis=1).loc[F.index]; T = D.index[-1]
 results = []
-for h in [3, 6, 12]:
+for h in HF:
     for name, cols in SETS.items():
         f = oos_forecast(D, f"pi_fut_{h}", cols, h); e = (D[f"pi_fut_{h}"] - f).dropna(); da = (np.sign(f - D["pi12"]) == np.sign(D[f"dpi_{h}"])).loc[e.index].mean()
         results.append(dict(h=h, model=name, RMSFE=np.sqrt((e ** 2).mean()), dir_acc=da))
@@ -398,13 +420,13 @@ R.p("Forecasts are evaluated pseudo-out-of-sample with an expanding window, its 
     f"Expanding-window pseudo-out-of-sample from {OOS_START[:4]} with full-sample factor loadings (a look-ahead in the factor construction).")
 R.table(RES_OOS.pivot(index="model", columns="h", values=["RMSFE", "rel_RMSFE", "dir_acc"]), "Out-of-sample RMSFE, RMSFE relative to M1, and directional accuracy for acceleration/deceleration, by horizon (months)")
 rows = {}
-for h in [3, 6, 12]:
+for h in HF:
     r = ols(D[f"pi_fut_{h}"], D[SETS["M3 +global+block"]], hac=h); rows[f"{h}m"] = pd.Series({k: f"{r.params[k]:+.2f} ({r.tvalues[k]:+.1f})" for k in F.columns}); rows[f"{h}m"]["R2 M3 / M1"] = f"{r.rsquared:.2f} / {ols(D[f'pi_fut_{h}'], D[SETS['M1 history']]).rsquared:.2f}"
 R.table(pd.DataFrame(rows), "In-sample factor coefficients (HAC t-statistics, lag = horizon) in the M3 regression")
 
 R.h(2, "4. What the model says today")
 today = {}
-for h in [3, 6, 12]:
+for h in HF:
     cols = SETS["M3 +global+block"]; r = ols(D[f"pi_fut_{h}"], D[cols]); fc = r.params["const"] + (r.params[cols] * D.loc[T, cols]).sum(); rm = RM.loc[(h, "M3 +global+block"), "RMSFE"]
     r1 = ols(D[f"pi_fut_{h}"], D[SETS["M1 history"]]); f1 = r1.params["const"] + (r1.params[SETS["M1 history"]] * D.loc[T, SETS["M1 history"]]).sum()
     today[f"{h}m"] = {"current 12m core PCE": D.loc[T, "pi12"], "current h-month core PCE": B1[f"pce_core_{h}m"].loc[T], "forecast M3": fc, "forecast M1 history": f1, "forecast change vs 12m": fc - D.loc[T, "pi12"],
@@ -415,7 +437,7 @@ TODAY = pd.DataFrame(today); R.table(TODAY, f"Forecast origin {T:%B %Y}; annuali
 R.h(2, "5. Current-signal and news decompositions")
 GROUP = {**{c: "history" for c in HIST.columns}, "G1": "G1", "G2": "G2", "B_infl": "inflation", "B_dist": "distribution", "B_exp": "expectations", "B_dem": "demand", "B_fin": "financial"}
 dec = {}
-for h in [3, 6, 12]:
+for h in HF:
     cols = SETS["M3 +global+block"]; r = ols(D[f"pi_fut_{h}"], D[cols]); c = (r.params[cols] * (D.loc[T, cols] - D[cols].mean())).groupby(pd.Series(GROUP)).sum()
     dec[f"{h}m"] = pd.concat([pd.Series({"sample mean of target": D[f"pi_fut_{h}"].mean()}), c, pd.Series({"forecast": D[f"pi_fut_{h}"].mean() + c.sum()})])
 dec = pd.DataFrame(dec).loc[["sample mean of target", "history", "G1", "G2", "inflation", "distribution", "expectations", "demand", "financial", "forecast"]]
@@ -516,7 +538,7 @@ R.table(PRED, "Subsequent change in core PCE on disagreement, current inflation,
 R.h(2, "9. Additional evidence")
 R.p(TEXT["p05_four_further_pieces_of_evidenc"])
 prob = {}
-for h in [3, 6, 12]:
+for h in HF:
     cols = SETS["M3 +global+block"]; rm = RM.loc[(h, "M3 +global+block"), "RMSFE"]; fc = today[f"{h}m"]["forecast M3"]
     lg = sm.Logit(D[f"decel_{h}"], sm.add_constant(D[cols]), missing="drop").fit(disp=0)
     prob[f"{h}m"] = {"P(lower) normal approx.": stats.norm.cdf((D.loc[T, "pi12"] - fc) / rm), "P(lower) logit": float(lg.predict(sm.add_constant(D[cols]).loc[[T]]).iloc[0]), "unconditional": D[f"decel_{h}"].mean()}

@@ -1,16 +1,6 @@
 
 # US inflation signals: agreement, disagreement, and forecasting
 
-**Summary**
-
-- Core PCE runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.
-- We collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.
-- The dynamic factor model that leverages data across all five blocks projects core PCE inflation of 3.2 / 3.2 / 3.1 percent annualized over the next 3/6/12 months, that is, a deceleration of 0.2 pp over the 12 months, and inflation is not expected to return to target over the near term.
-- The first common factor in each of the five blocks is near its historical average, although we see some notable divergence in the second factors.
-- While we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.
-- Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.
-
-
 ## Introduction
 
 We ask what the current configuration of inflation-related indicators implies for future US inflation, how much the indicators agree or disagree with one another, and what they say about the distribution of today's shocks relative to historical episodes.
@@ -18,6 +8,15 @@ We ask what the current configuration of inflation-related indicators implies fo
 The motivation is the current Fed debate, in which policymakers emphasize different statistics: recent inflation momentum, median and trimmed measures, the breadth of price increases, expectations, labor-market conditions, demand, and financial conditions.
 
 All of these are treated as potentially useful signals for future inflation. Our analysis takes the following steps. Predictors are organized into five blocks and each block is first examined on its own. Then we combine information across all five blocks to forecast core PCE inflation 3, 6, and 12 months ahead, and this current forecast is decomposed into contributions from different sources of news. Finally, we investigate the degree of disagreement across signals, and look toward what this implies for today's configuration of shocks.
+
+**Summary**
+
+- Core PCE currently runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.
+- We collect data across five blocks: inflation measures, inflation distribution measures, inflation expectations measures, demand-side measures, and financial-side measures.
+- The dynamic factor model that leverages data across all five blocks projects core PCE inflation of 3.2 / 3.2 / 3.1 percent annualized over the next 3/6/12 months, that is, a deceleration of 0.2 pp over the 12 months, and inflation is not expected to return to target over the near term.
+- The first common factor in each of the five blocks is near its historical average, although we see some notable divergence in the second factors.
+- While we don't see evidence of overheating, we also don't see evidence of current conditions being significantly restrictive.
+- Across the second principal components, we see secondary evidence of a higher-than-average wedge between household and professional inflation expectations, a tighter-than-average labor market, and signs of lower-than-usual financial stress.
 
 
 ## 1. The five blocks
@@ -46,9 +45,9 @@ All of these are treated as potentially useful signals for future inflation. Our
 ![Block 1, inflation measures](figures/block_infl.png)
 *Block 1, inflation measures*
 
-PC1 is the general inflation factor, and comoves positively with all inflation measures, and correlation is highest with recent core and trimmed mean inflation measures. This measure is overall about neutral.
+PC1 is the general inflation factor, comoving positively with all inflation measures and correlating most strongly with recent core and trimmed-mean measures. It currently sits close to its historical average.
 
-PC2 is capturing momentum, loading positively on 3m inflation measures and negatively on 12m inflation measures, so PC2 is negative when inflation is decelerating. Inflation was recently accelerating since the Iran war, but has now come back down to about neutral.
+PC2 captures momentum, loading positively on 3m measures and negatively on 12m measures, so it turns negative when inflation is decelerating. It rose with the Iran war and has since returned to average, without yet turning negative.
 
 
 ### Block 2: price-change distribution
@@ -79,9 +78,9 @@ PC2 is capturing momentum, loading positively on 3m inflation measures and negat
 ![Block 2, price-change distribution](figures/block_dist.png)
 *Block 2, price-change distribution*
 
-PC1 is the breadth factor, and comoves positively with the share of categories rising quickly and with median category inflation, and correlation is highest with the 6-month measures. Breadth spiked to +1.5 standard deviations three months ago but has since come back to about neutral.
+PC1 is the breadth factor, comoving positively with the share of categories rising quickly and with median category inflation, and correlating most strongly with the 6-month measures. Breadth spiked to +1.5 standard deviations three months ago and has since returned to average.
 
-PC2 separates wide two-sided dispersion from upper-tail concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so PC2 is negative when a few categories are doing the work rather than the whole distribution shifting. PC2 ran close to -1.5 through the middle of the year, and has since returned to about neutral.
+PC2 separates wide two-sided dispersion from right-tailed concentration, loading positively on the interquartile range and negatively on skewness and the upper-tail share, so it turns negative when a few categories are accelerating rather than the whole distribution shifting. It ran close to -1.5 through the middle of the year, possibly reflecting energy and tariff-related passthrough, and has since returned to average.
 
 
 ### Block 3: inflation expectations
@@ -104,9 +103,9 @@ PC2 separates wide two-sided dispersion from upper-tail concentration, loading p
 ![Block 3, expectations](figures/block_exp.png)
 *Block 3, expectations*
 
-PC1 is the level of expected inflation, and comoves positively with every source, and correlation is highest with the Cleveland model and the SPF one-year forecast. The level is about neutral.
+PC1 is the level of expected inflation, comoving positively with every source and correlating most strongly with the Cleveland Fed measures and the SPF one-year forecast. It currently sits close to its historical average.
 
-PC2 is the wedge between near-term uncertainty and long-run anchoring, loading positively on forecaster dispersion and household expectations and negatively on the 10-year anchors, so PC2 is positive when households and near-term forecasters run ahead of the anchors. It sits modestly above average, having spiked earlier in the year.
+PC2 is the wedge between near-term disagreement and long-run expectations, loading positively on forecaster dispersion and household expectations and negatively on the 10-year measures, so it turns positive when households and near-term forecasters run ahead of the long-run view. It sits modestly above average, having partially unwound its spike earlier in the year.
 
 
 ### Block 4: demand and labor
@@ -134,9 +133,9 @@ PC2 is the wedge between near-term uncertainty and long-run anchoring, loading p
 ![Block 4, demand and labor](figures/block_dem.png)
 *Block 4, demand and labor*
 
-PC1 is the business-cycle factor, and comoves positively with output, employment and real spending growth, and correlation is highest with year-on-year GDP and compensation. Activity sits a little below its historical average.
+PC1 is the standard business-cycle factor, comoving positively with output, employment and real spending growth, and correlating most strongly with year-on-year GDP and compensation growth. Activity sits a little below its historical average.
 
-PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-unemployment ratio and quits and negatively on unemployment, so PC2 is positive when the labor market is tight relative to activity. It remains above average, though it has drifted down steadily over the past year.
+PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-unemployment ratio and quits and negatively on unemployment, so it turns positive when the labor market is tight relative to activity. It remains above average, though it has drifted down steadily over the year.
 
 
 ### Block 5: financial conditions and risk pricing
@@ -164,26 +163,24 @@ PC2 is the wage-pressure factor, loading positively on wage growth, the vacancy-
 ![Block 5, financial conditions (+ = looser)](figures/block_fin.png)
 *Block 5, financial conditions (+ = looser)*
 
-PC1 is the rates dimension of financial conditions, inverted so that positive means looser, and correlation is highest with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average, so this dimension is neither restrictive nor accommodative.
+PC1 is the common factor of interest rates, inverted so that positive implies looser financial conditions, and correlating most strongly with the mortgage rate, the 10-year real rate and the 10-year Treasury yield. Rates sit at about their historical average.
 
-PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so PC2 is positive when financial stress is elevated. It sits well below average, so risk pricing is unusually benign rather than stressed.
+PC2 is the risk-pricing dimension, loading positively on credit spreads, the excess bond premium, the VIX and the NFCI, so it turns positive when financial stress is elevated. It sits well below average: risk pricing is unusually benign.
 
 
 ## 2. Factor structure
 
-The factor model is X = Lambda_G G + lambda_B B + e: two global factors common to the whole panel and one factor specific to each block. The implementation is simple: standardize the panel, extract two principal components, subtract the fitted global component, and take the first principal component of each block's residual. Signs are normalized so that every factor is oriented as inflationary pressure (the financial factor: looser conditions). A VAR(1) on the seven factors provides the dynamics used in the news decomposition.
+We next combine the five blocks in a dynamic factor model, X = Lambda_G G + lambda_B B + e, allowing two global factors common to the whole panel and one factor specific to each block. We estimate it by PCA for simplicity (i.e., no expectation-maximization), normalize signs so that every factor is positively related to inflation, and project the dynamics with a VAR(1) on the seven factors.
 
-The panel has 140 variables from 1985-01 to 2026-07. Two global PCs on the standardized panel explain 52% of its variance (G1 39%, G2 13%); one PC per block on the residual explains infl 20%, dist 28%, exp 50%, dem 31%, fin 34% of the block's residual variance. Every factor is oriented so that higher = more inflationary pressure (financial: looser). VAR(1) own-persistence: G1 0.97, G2 0.93, B_infl 0.85, B_dist 0.84, B_exp 0.86, B_dem 0.82, B_fin 0.96.
+The panel has 140 variables from 1985-01 to 2026-07. The two global components explain 52 percent of its variance (G1 39, G2 13); the block components explain 20 percent of the residual variance in infl, 28 in dist, 50 in exp, 31 in dem and 34 in fin.
 
-G1 is drawn from infl (10) among its top-10 correlates; aligned positively with infl 6m rate (4), infl 12m rate (4), infl short-horizon rate (1m/3m) (2); e.g. cpi_trim_6m, pce_trim_6m, cpi_trim_3m; inverted: none. Reading: the common inflation level, dominated by trimmed, core and headline rates at 3 to 12 months; the state the underlying-inflation measures try to track.
+G1 reflects current inflation, best measured by 3m and 6m trimmed-mean and other core measures; G2 reflects demand and financial conditions. The block factors capture:
 
-G2 is drawn from dem (5), fin (3), infl (2) among its top-10 correlates; aligned positively with dem activity (5), infl short-horizon rate (1m/3m) (1), infl 6m rate (1), fin asset prices (1); e.g. ip_12m, ip_6m, real_inv_yoy; inverted: fin credit supply (1), fin risk pricing (1); e.g. sloos_ci, ebp. Reading: activity and investment growth with short-horizon inflation, against tight lending standards and wide spreads; a demand-pressure state.
-
-- B_infl loads on: cpi_core_flex_6m (-0.29), cpi_core_flex_3m (-0.28), cpi_core_flex_12m (-0.26)
-- B_dist loads on: xs_sd_12m (+0.29), xs_sd_6m (+0.27), xs_sd_3m (+0.25)
-- B_exp loads on: spf_cpi_10y (-0.45), spf_cpi_4q_sd (+0.44), clev_10y (-0.44)
-- B_dem loads on: payrolls_12m (+0.33), gdp_yoy (+0.31), real_pce_12m (+0.30)
-- B_fin loads on: real_10y_clev (+0.35), dgs10 (+0.35), term_premium_10y (+0.34)
+- B_infl: inflation momentum.
+- B_dist: inflation dispersion across categories.
+- B_exp: the spread between near-term disagreement and the long-term anchor.
+- B_dem: labor-market tightness.
+- B_fin: term premia and long-term real rates.
 
 ![Global and block-specific factors.](figures/factors.png)
 *Global and block-specific factors.*

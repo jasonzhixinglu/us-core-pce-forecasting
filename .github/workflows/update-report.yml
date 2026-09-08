@@ -1,0 +1,44 @@
+name: Update report
+
+# Regenerates the report from fresh FRED data and commits the outputs, which GitHub Pages
+# then serves from main. Runs weekly and on demand from the Actions tab.
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays, 13:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-report
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Regenerate the report
+        run: python run.py --refresh
+
+      - name: Commit outputs if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A report.md report.html figures cache
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Scheduled report update $(date -u +%Y-%m-%d)"
+            git push
+          fi

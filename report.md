@@ -1,6 +1,8 @@
 
 # US inflation signals: agreement, disagreement, and forecasting
 
+*Generated September 8, 2026. Data through July 2026, the latest core PCE release; every forecast, decomposition and analog below is conditional on that vintage.*
+
 **Summary**
 
 - Core PCE currently runs at 3.3 percent over 12 months and 3.0 percent annualized over 3 months.

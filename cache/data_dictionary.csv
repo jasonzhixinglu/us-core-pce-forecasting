@@ -15,6 +15,7 @@ pce_core_1m,infl,1985-01-01
 pce_core_3m,infl,1985-01-01
 pce_core_6m,infl,1985-01-01
 pce_core_12m,infl,1985-01-01
+pce_core_24m,infl,1985-01-01
 cpi_svc_xe_1m,infl,1985-01-01
 cpi_svc_xe_3m,infl,1985-01-01
 cpi_svc_xe_6m,infl,1985-01-01

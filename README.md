@@ -32,9 +32,26 @@ python run.py --recompute    # recompute the cached stages (news, out-of-sample 
 
 Expensive results are cached under `cache/` and reused until their inputs change: the fitted
 DFM parameters (`dfm_params_*.npz`, keyed by a fingerprint of the panel) and the slow stages
-(`cache/stages/`). A fresh clone runs without refitting.
+(`cache/stages/`). The fitted parameters are committed, so a fresh clone runs without
+refitting; the stage caches are not, so the first run on a fresh clone takes a few minutes
+while it rebuilds them, and about 30 seconds after that.
 
-Requires Python 3.12+ (nested f-strings) with numpy, pandas, statsmodels, scipy, matplotlib, requests and pyarrow.
+Requires Python 3.12+ (nested f-strings). Install the dependencies with:
+
+```
+pip install -r requirements.txt
+```
+
+## Publishing
+
+The live page is GitHub Pages serving the `main` branch as-is: `index.html` redirects to the
+committed `report.html`, which loads the committed `figures/`. Nothing is built on GitHub's
+side, so the page shows whatever `report.html` was last pushed. The report's dateline states
+when it was generated and the last core PCE month it conditions on.
+
+A workflow in `.github/workflows/update-report.yml` runs `python run.py --refresh` every
+Monday (and on demand from the Actions tab), then commits and pushes `report.md`,
+`report.html`, `figures/` and `cache/` if anything changed. Pages redeploys on the push.
 
 ## Layout
 
@@ -46,6 +63,8 @@ Requires Python 3.12+ (nested f-strings) with numpy, pandas, statsmodels, scipy,
 | `fit_dfm.py` | EM estimation, run in its own process and cached |
 | `report.md`, `report.html` | generated; `index.html` redirects the live page to `report.html` |
 | `figures/` | generated |
+| `requirements.txt` | Python dependencies |
+| `.github/workflows/update-report.yml` | scheduled regeneration and push of the outputs |
 | `cache/` | FRED series as CSV, the SPF and excess-bond-premium inputs, fitted parameters, stage caches |
 
 `report.md` is regenerated on every run. Prose lives in `text.py`; sentences that quote

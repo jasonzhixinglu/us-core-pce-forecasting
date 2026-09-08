@@ -6,7 +6,7 @@ pseudo-real-time news), measures disagreement, finds analogs, cuts by supply/dem
 and writes a report (report.md + report.html, figures in figures/) that answers the 15
 questions directly.
 
-    python research/us_inflation_signals/run.py [--refresh]
+    python run.py [--refresh] [--refit] [--recompute]
 
 Data: latest-vintage FRED (CSV endpoint, no key). Non-FRED, flagged: SPF individual CPI
 forecasts (Philadelphia Fed) and the Gilchrist-Zakrajsek excess bond premium (Federal
@@ -38,6 +38,9 @@ class Report:
     def __init__(self): self.items = []; self.summary_at = None
     def h(self, level, text): self.items.append(("h", level, text))
     def p(self, text): self.items.append(("p", text))
+    def dateline(self, text):   # sits directly under the title, above the summary
+        self.items.insert(1, ("dateline", text))
+        if self.summary_at is not None and self.summary_at >= 1: self.summary_at += 1
     def note(self, text): self.items.append(("note", text))
     def bullets(self, lines): self.items.append(("ul", list(lines)))
     def summary_slot(self): self.summary_at = len(self.items)
@@ -55,9 +58,10 @@ class Report:
             k = it[0]
             if k == "h":
                 lvl, txt = it[1], it[2]; md.append(f"\n{'#'*lvl} {txt}\n"); aid = f"s{len(toc)}"
-                if lvl == 2: toc.append((aid, txt))
+                if lvl in (2, 3): toc.append((aid, lvl, txt))   # sections and subsections both get navigation links
                 hb.append(f"<h{lvl} id='{aid}'>{html.escape(txt)}</h{lvl}>")
             elif k == "p": md.append(it[1] + "\n"); hb.append(f"<p>{html.escape(it[1])}</p>")
+            elif k == "dateline": md.append(f"*{it[1]}*\n"); hb.append(f"<p class='dateline'>{html.escape(it[1])}</p>")
             elif k == "note": md.append(f"> {it[1]}\n"); hb.append(f"<div class='note'>{html.escape(it[1])}</div>")
             elif k == "ul": md += [f"- {l}" for l in it[1]] + [""]; hb.append("<ul>" + "".join(f"<li>{html.escape(l)}</li>" for l in it[1]) + "</ul>")
             elif k == "summary": md += ["**Summary**\n"] + [f"- {l}" for l in it[1]] + [""]; hb.append("<div class='summary'><b>Summary</b><ul>" + "".join(f"<li>{html.escape(l)}</li>" for l in it[1]) + "</ul></div>")
@@ -72,13 +76,13 @@ class Report:
                 md.append(f"![{it[2]}]({it[1]})\n" + (f"*{it[2]}*\n" if it[2] else "")); hb.append(f"<figure><img src='{it[1]}'><figcaption>{html.escape(it[2])}</figcaption></figure>")
         (HERE / f"{stem}.md").write_text("\n".join(md), encoding="utf-8")
         css = ("body{font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5;max-width:1000px;margin:36px auto;padding:0 24px;color:#1a1a1a}"
-               "h1{font-size:26px;margin-bottom:4px} h2{font-size:19px;border-bottom:1px solid #bbb;padding-bottom:3px;margin-top:40px} h3{font-size:15px;margin-top:22px;color:#333}"
+               "h1{font-size:26px;margin-bottom:4px} .dateline{font-size:13px;color:#555;margin:0 0 14px}h2{font-size:19px;border-bottom:1px solid #bbb;padding-bottom:3px;margin-top:40px} h3{font-size:15px;margin-top:22px;color:#333}"
                "p{margin:8px 0 10px} .summary{background:#f4f6f9;border-left:4px solid #1f3b5c;padding:10px 16px;margin:16px 0} .summary ul{margin:6px 0 0 16px;padding:0} .summary li{margin:4px 0}"
-               ".note{background:#fbf7ea;border-left:4px solid #d4a017;padding:8px 14px;margin:12px 0;font-size:13px} .toc{font-size:13px;margin:10px 0 20px} .toc a{text-decoration:none;color:#1f3b5c}"
+               ".note{background:#fbf7ea;border-left:4px solid #d4a017;padding:8px 14px;margin:12px 0;font-size:13px} .toc{font-size:13px;margin:10px 0 20px;line-height:1.7} .toc a{text-decoration:none;color:#1f3b5c} .toc a:hover{text-decoration:underline} .toc .sub{display:block;padding-left:22px;font-size:12px;color:#555}"
                ".tbl{margin:12px 0 18px;overflow-x:auto} .cap{font-size:12px;color:#555;font-style:italic;margin-bottom:4px} table.t{border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;font-size:12px}"
                ".t th,.t td{padding:3px 9px;border-bottom:1px solid #e3e3e3;text-align:right;white-space:nowrap} .t th{background:#f0f0f0;font-weight:600} .t td:first-child,.t th:first-child{text-align:left}"
                ".t.small{font-size:11px} figure{margin:14px 0 20px} img{max-width:100%;border:1px solid #eee} figcaption{font-size:12px;color:#555;font-style:italic;margin-top:4px} ul{margin:6px 0 10px 20px} li{margin:4px 0}")
-        toc_html = "<div class='toc'>" + "<br>".join(f"<a href='#{a}'>{html.escape(t)}</a>" for a, t in toc) + "</div>"
+        toc_html = "<div class='toc'>" + "".join(f"<a href='#{a}'>{html.escape(t)}</a><br>" if l == 2 else f"<a class='sub' href='#{a}'>{html.escape(t)}</a>" for a, l, t in toc) + "</div>"
         body = "".join(hb); first_h2 = body.index("<h2"); body = body[:first_h2] + toc_html + body[first_h2:]
         (HERE / f"{stem}.html").write_text(f"<!doctype html><html><head><meta charset='utf-8'><title>US inflation signals</title><style>{css}</style></head><body>{body}</body></html>", encoding="utf-8")
 R = Report()
@@ -285,6 +289,7 @@ for m1, m12, tag, name, src in RATES:
     r1, r12 = m(m1), m(m12); B1[f"{tag}_1m"] = r1; B1[f"{tag}_3m"] = r1.rolling(3).mean(); B1[f"{tag}_6m"] = r1.rolling(6).mean(); B1[f"{tag}_12m"] = r12
     reg(1, f"{tag}_{{1,3,6,12}}m", name, src, "published 1-month annualized and 12-month rates; 3m and 6m as rolling means of the 1-month rate")
 B1 = pd.DataFrame(B1); END = B1["pce_core_12m"].dropna().index[-1]   # panel end: the last core PCE print
+TODAY = pd.Timestamp.today(); R.dateline(f"Generated {TODAY:%B} {TODAY.day}, {TODAY:%Y}. Data through {END:%B %Y}, the latest core PCE release; every forecast, decomposition and analog below is conditional on that vintage.")
 R.h(3, "Block 1: inflation measures")
 R.table(meta_table(1), "Block 1 indicators", small=True)
 block_eda("infl", B1, "pce_core_12m", title="Block 1, inflation measures")

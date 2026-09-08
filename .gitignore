@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# generated locally, not committed
+cache/panel.pkl
+cache/stages/
+report_preview.html
+_figsmall/
